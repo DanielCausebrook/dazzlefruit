@@ -2,18 +2,19 @@ use nalgebra_glm::smoothstep;
 use noise::{NoiseFn, OpenSimplex};
 use palette::Mix;
 use rand::random;
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{ComponentInfo, ComponentConfig, Component};
 use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::locked::PixelLayerProperty;
+use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 
 #[derive(Clone)]
 pub struct TwoToneConfig {
     info: ComponentInfo,
-    textures: (PixelLayerProperty, PixelLayerProperty),
+    textures: (TextureProperty, TextureProperty),
     noise_flow_speed: NumProperty<f64>,
     gradient_width: NumProperty<f64>,
     gradient_offset: NumProperty<f64>,
@@ -27,8 +28,8 @@ impl TwoToneConfig {
         Self {
             info: ComponentInfo::new("TwoTone"),
             textures: (
-                PixelLayerProperty::new(Box::new(colors.0), PropertyInfo::new("Texture 1").display_pane(DisplayPane::Tree)),
-                PixelLayerProperty::new(Box::new(colors.1), PropertyInfo::new("Texture 2").display_pane(DisplayPane::Tree))
+                TextureProperty::new(Box::new(colors.0), PropertyInfo::new("Texture 1").display_pane(DisplayPane::Tree)),
+                TextureProperty::new(Box::new(colors.1), PropertyInfo::new("Texture 2").display_pane(DisplayPane::Tree))
             ),
             noise_flow_speed: flow_speed.into()
                 .set_info(PropertyInfo::new("Noise Flow Speed"))
@@ -90,40 +91,15 @@ impl TwoToneConfig {
     }
 }
 
-impl ComponentConfig for TwoToneConfig {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
-
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![
-            &self.textures.0,
-            &self.textures.1,
-            &self.noise_flow_speed,
-            &self.noise_scaling,
-            &self.noise_travel_speed,
-            &self.gradient_width,
-            &self.gradient_offset,
-        ]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![
-            &mut self.textures.0,
-            &mut self.textures.1,
-            &mut self.noise_flow_speed,
-            &mut self.noise_scaling,
-            &mut self.noise_travel_speed,
-            &mut self.gradient_width,
-            &mut self.gradient_offset,
-        ]
-    }
-}
-
+impl_component_config!(self: TwoToneConfig, self.info, [
+    self.textures.0,
+    self.textures.1,
+    self.noise_flow_speed,
+    self.noise_scaling,
+    self.noise_travel_speed,
+    self.gradient_width,
+    self.gradient_offset,
+]);
 
 #[derive(Clone)]
 pub struct TwoTone {
@@ -144,13 +120,7 @@ impl TwoTone {
     }
 }
 
-impl Component for TwoTone {
-    fn config(&self) -> &dyn ComponentConfig { &self.config }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig { &mut self.config }
-
-    fn component_type(&self) -> &'static str { "pixel" }
-}
+impl_component!(self: TwoTone, self.config, "pixel");
 
 impl Texture for TwoTone {
     fn get_blend_mode(&self) -> &BlendModeProperty {

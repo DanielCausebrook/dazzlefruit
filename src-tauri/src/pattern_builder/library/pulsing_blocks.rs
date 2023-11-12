@@ -1,5 +1,6 @@
 use nalgebra_glm::smoothstep;
 use palette::WithAlpha;
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{ComponentInfo, ComponentConfig, Component};
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::texture::Texture;
@@ -49,41 +50,17 @@ impl PulsingBlocksConfig {
         PulsingBlocks::new(self)
     }
 }
-impl ComponentConfig for PulsingBlocksConfig {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
 
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![
-            &self.textures,
-            &self.textures_per_second,
-            &self.texture_duration,
-            &self.fade_in_out_duration,
-            &self.flow_speed,
-            &self.scaling,
-            &self.block_density,
-            &self.block_softness,
-        ]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![
-            &mut self.textures,
-            &mut self.textures_per_second,
-            &mut self.texture_duration,
-            &mut self.fade_in_out_duration,
-            &mut self.flow_speed,
-            &mut self.scaling,
-            &mut self.block_density,
-            &mut self.block_softness,
-        ]
-    }
-}
+impl_component_config!(self: PulsingBlocksConfig, self.info, [
+    self.textures,
+    self.textures_per_second,
+    self.texture_duration,
+    self.fade_in_out_duration,
+    self.flow_speed,
+    self.scaling,
+    self.block_density,
+    self.block_softness,
+]);
 
 #[derive(Clone)]
 struct PulsingBlockLayer {
@@ -139,19 +116,7 @@ impl PulsingBlocks {
     }
 }
 
-impl Component for PulsingBlocks {
-    fn config(&self) -> &dyn ComponentConfig {
-        &self.config
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        &mut self.config
-    }
-
-    fn component_type(&self) -> &'static str {
-        "pixel"
-    }
-}
+impl_component!(self: PulsingBlocks, self.config, "pixel");
 
 impl Texture for PulsingBlocks {
     fn get_blend_mode(&self) -> &BlendModeProperty {

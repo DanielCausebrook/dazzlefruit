@@ -1,20 +1,21 @@
 use palette::WithAlpha;
 use rand::distributions::{Distribution, Uniform};
 use rand_distr::Poisson;
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
 use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::locked::PixelLayerProperty;
+use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 use crate::pattern_builder::library::filters::persistence_effect::{PersistenceEffect, PersistenceEffectConfig};
 
 #[derive(Clone)]
 pub struct SparklesConfig {
     info: ComponentInfo,
-    texture: PixelLayerProperty,
+    texture: TextureProperty,
     density: NumProperty<f64>,
     decay_rate: NumProperty<f64>,
     blend_mode: BlendModeProperty,
@@ -26,7 +27,7 @@ impl SparklesConfig {
         let persistence_effect_config = PersistenceEffectConfig::new(decay_rate);
         Self {
             info: ComponentInfo::new("Sparkles"),
-            texture: PixelLayerProperty::new(Box::new(texture), PropertyInfo::new("Texture").display_pane(DisplayPane::Tree)),
+            texture: TextureProperty::new(Box::new(texture), PropertyInfo::new("Texture").display_pane(DisplayPane::Tree)),
             density: density.into().set_info(PropertyInfo::new("Density")).set_slider(Some(NumSlider::new(0.0..10.0, 0.1))),
             decay_rate: persistence_effect_config.decay_rate().clone().set_info(PropertyInfo::new("Decay Rate")),
             blend_mode: BlendModeProperty::default(),
@@ -38,23 +39,11 @@ impl SparklesConfig {
     }
 }
 
-impl ComponentConfig for SparklesConfig {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
-
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![&self.texture, &self.density, &self.decay_rate]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![&mut self.texture, &mut self.density, &mut self.decay_rate]
-    }
-}
+impl_component_config!(self: SparklesConfig, self.info, [
+    self.texture,
+    self.density,
+    self.decay_rate,
+]);
 
 #[derive(Clone)]
 pub struct Sparkles {
@@ -77,19 +66,7 @@ impl Sparkles {
     }
 }
 
-impl Component for Sparkles {
-    fn config(&self) -> &dyn ComponentConfig {
-        &self.config
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        &mut self.config
-    }
-
-    fn component_type(&self) -> &'static str {
-        "pixel"
-    }
-}
+impl_component!(self: Sparkles, self.config, "pixel");
 
 impl Texture for Sparkles {
     fn get_blend_mode(&self) -> &BlendModeProperty {

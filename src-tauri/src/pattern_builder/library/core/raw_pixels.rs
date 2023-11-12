@@ -1,4 +1,5 @@
 use palette::WithAlpha;
+use crate::impl_component;
 use crate::pattern_builder::component::texture::{Texture};
 use crate::pattern_builder::component::basic_config::BasicPixelLayerConfig;
 use crate::pattern_builder::component::{Component, ComponentConfig};
@@ -17,17 +18,7 @@ impl RawPixels {
     }
 }
 
-impl Component for RawPixels {
-    fn config(&self) -> &dyn ComponentConfig {
-        &self.config
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        &mut self.config
-    }
-
-    fn component_type(&self) -> &'static str { "pixel" }
-}
+impl_component!(self: RawPixels, self.config, "pixel");
 
 impl Texture for RawPixels {
     fn get_blend_mode(&self) -> &BlendModeProperty {

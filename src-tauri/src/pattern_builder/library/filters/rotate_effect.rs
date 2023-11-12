@@ -1,4 +1,5 @@
 use palette::Mix;
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{ComponentInfo, ComponentConfig, Component};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::data::PixelFrame;
@@ -27,45 +28,13 @@ impl RotateEffect {
     }
 }
 
-impl ComponentConfig for RotateEffect {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
+impl_component!(self: RotateEffect, *self, "filter");
 
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![
-            &self.offset,
-            &self.speed,
-            &self.smoothing,
-        ]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![
-            &mut self.offset,
-            &mut self.speed,
-            &mut self.smoothing,
-        ]
-    }
-}
-
-impl Component for RotateEffect {
-    fn config(&self) -> &dyn ComponentConfig {
-        self
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        self
-    }
-
-    fn component_type(&self) -> &'static str {
-        "filter"
-    }
-}
+impl_component_config!(self: RotateEffect, self.info, [
+    self.offset,
+    self.speed,
+    self.smoothing,
+]);
 
 impl Filter for RotateEffect {
     fn next_frame(&mut self, t: f64, mut active: PixelFrame) -> PixelFrame {

@@ -18,6 +18,7 @@ use crate::watch_guard::{RWLockWatchReadGuard, RWLockWatchWriteGuard};
 
 pub mod library;
 pub mod component;
+pub mod math_functions;
 
 pub struct PatternBuilder {
     id: u64,

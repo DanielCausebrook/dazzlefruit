@@ -1,6 +1,7 @@
 use palette::WithAlpha;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
 use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::data::{DisplayPane, Frame, FrameSize, PixelFrame};
@@ -34,31 +35,11 @@ impl GroupLayer {
     }
 }
 
-impl ComponentConfig for GroupLayer {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
+impl_component!(self: GroupLayer, *self, "group");
 
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![&self.layers]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![&mut self.layers]
-    }
-}
-
-impl Component for GroupLayer {
-    fn config(&self) -> &dyn ComponentConfig { self }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig { self }
-
-    fn component_type(&self) -> &'static str { "group" }
-}
+impl_component_config!(self: GroupLayer, self.info, [
+    self.layers
+]);
 
 impl Texture for GroupLayer {
     fn get_blend_mode(&self) -> &BlendModeProperty {
@@ -93,25 +74,18 @@ enum Layer {
     Filter(Box<dyn Filter>),
 }
 
-impl Component for Layer {
-    fn config(&self) -> &dyn ComponentConfig {
+impl Layer {
+    fn as_component_ref(&self) -> &dyn Component {
         match self {
-            Layer::Pixel(layer) => layer.config(),
-            Layer::Filter(layer) => layer.config(),
+            Layer::Pixel(ref layer) => layer,
+            Layer::Filter(ref layer) => layer,
         }
     }
 
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
+    fn as_component_mut(&mut self) -> &mut dyn Component {
         match self {
-            Layer::Pixel(layer) => layer.config_mut(),
-            Layer::Filter(layer) => layer.config_mut(),
-        }
-    }
-
-    fn component_type(&self) -> &'static str {
-        match self {
-            Layer::Pixel(layer) => layer.component_type(),
-            Layer::Filter(layer) => layer.component_type(),
+            Layer::Pixel(ref mut layer) => layer,
+            Layer::Filter(ref mut  layer) => layer,
         }
     }
 }
@@ -123,12 +97,12 @@ impl Property for LayerVecProperty {
     fn get_type_id(&self) -> &'static str { "layerVec" }
     fn for_each_child_component<'a>(&self, mut func: Box<dyn FnMut(&dyn Component) + 'a>) {
         for layer in self.read().iter() {
-            func(layer);
+            func(layer.as_component_ref());
         }
     }
     fn for_each_child_component_mut<'a>(&mut self, mut func: Box<dyn FnMut(&mut dyn Component) + 'a>) {
         for layer in self.write().iter_mut() {
-            func(layer)
+            func(layer.as_component_mut())
         }
     }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
@@ -144,7 +118,7 @@ impl Serialize for LayerVecProperty {
         self.get_info().serialize_into::<S>(&mut struct_ser)?;
         struct_ser.serialize_field("property_type", self.get_type_id())?;
         struct_ser.serialize_field("value", &self.read().iter()
-            .map(|layer| layer.config().info().get_id())
+            .map(|layer| layer.as_component_ref().config().info().get_id())
             .collect::<Vec<_>>()
         )?;
         struct_ser.end()

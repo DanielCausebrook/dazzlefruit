@@ -1,3 +1,4 @@
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{ComponentInfo, ComponentConfig, Component};
 use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::data::{DisplayPane, FrameSize, Pixel, PixelFrame};
@@ -21,37 +22,11 @@ impl SolidColor {
     }
 }
 
-impl ComponentConfig for SolidColor {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
+impl_component!(self: SolidColor, *self, "pixel");
 
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![&self.color]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![&mut self.color]
-    }
-}
-
-impl Component for SolidColor {
-    fn config(&self) -> &dyn ComponentConfig {
-        self
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        self
-    }
-
-    fn component_type(&self) -> &'static str {
-        "pixel"
-    }
-}
+impl_component_config!(self: SolidColor, self.info, [
+    self.color,
+]);
 
 impl Texture for SolidColor {
     fn get_blend_mode(&self) -> &BlendModeProperty {

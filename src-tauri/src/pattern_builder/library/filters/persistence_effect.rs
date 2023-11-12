@@ -1,4 +1,5 @@
 use palette::WithAlpha;
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
 use crate::pattern_builder::component::data::{BlendMode, Frame, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
@@ -29,25 +30,9 @@ impl PersistenceEffectConfig {
     }
 }
 
-impl ComponentConfig for PersistenceEffectConfig {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
-
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![&self.decay_rate]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![
-            &mut self.decay_rate
-        ]
-    }
-}
+impl_component_config!(self: PersistenceEffectConfig, self.info, [
+    self.decay_rate
+]);
 
 #[derive(Clone)]
 pub struct PersistenceEffect {
@@ -66,19 +51,7 @@ impl PersistenceEffect {
     }
 }
 
-impl Component for PersistenceEffect {
-    fn config(&self) -> &dyn ComponentConfig {
-        &self.config
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        &mut self.config
-    }
-
-    fn component_type(&self) -> &'static str {
-        "filter"
-    }
-}
+impl_component!(self: PersistenceEffect, self.config, "filter");
 
 impl Filter for PersistenceEffect {
     fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {

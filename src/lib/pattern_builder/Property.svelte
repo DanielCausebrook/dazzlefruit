@@ -50,22 +50,30 @@
         </div>
     {:else if propConfig.property_type === "num"}
         <div class="value input">
-            <input
-                    type="range"
-                    step="{propConfig.slider.step}"
-                    min="{propConfig.slider.range.start}"
-                    max="{propConfig.slider.range.end}"
-                    bind:value={propConfig.value}
-                    on:input={updateNum}
-            />
-            <input
-                    type="number"
-                    step="{propConfig.slider.step}"
-                    min="{propConfig.slider.range.start}"
-                    max="{propConfig.slider.range.end}"
-                    bind:value={propConfig.value}
-                    on:change={updateNum}
-            />
+            {#if propConfig.slider !== null}
+                <input
+                        type="range"
+                        step="{propConfig.slider.step}"
+                        min="{propConfig.slider.range.start}"
+                        max="{propConfig.slider.range.end}"
+                        bind:value={propConfig.value}
+                        on:input={updateNum}
+                />
+                <input
+                        type="number"
+                        step="{propConfig.slider.step}"
+                        min="{propConfig.slider.range.start}"
+                        max="{propConfig.slider.range.end}"
+                        bind:value={propConfig.value}
+                        on:change={updateNum}
+                />
+            {:else}
+                <input
+                        type="number"
+                        bind:value={propConfig.value}
+                        on:change={updateNum}
+                />
+            {/if}
         </div>
     {:else if propConfig.property_type === "color"}
         <div class="value input">

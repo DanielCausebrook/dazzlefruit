@@ -6,13 +6,14 @@ use tauri::async_runtime::{JoinHandle, spawn};
 use tokio::select;
 use tokio::sync::watch;
 use tokio::time::{interval, MissedTickBehavior};
+use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{ComponentInfo, ComponentConfig, Component};
 
 use crate::pattern_builder::component::texture::{Texture};
 use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::{BlendModeProperty, BoolProperty};
-use crate::pattern_builder::component::property::locked::PixelLayerProperty;
+use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 use crate::watch_guard::RWLockWatchReceiver;
 
@@ -22,7 +23,7 @@ const FPS: f32 = 30.0;
 pub struct AnimationRunnerConfig {
     info: ComponentInfo,
     blend_mode: BlendModeProperty,
-    layer: PixelLayerProperty,
+    layer: TextureProperty,
     num_pixels: NumProperty<FrameSize>,
     speed: NumProperty<f64>,
     running: BoolProperty,
@@ -33,7 +34,7 @@ impl AnimationRunnerConfig {
         Self {
             info: ComponentInfo::new("Animation Runner"),
             blend_mode: BlendModeProperty::default(),
-            layer: PixelLayerProperty::new(Box::new(layer), PropertyInfo::unnamed().display_pane(DisplayPane::Tree)),
+            layer: TextureProperty::new(Box::new(layer), PropertyInfo::unnamed().display_pane(DisplayPane::Tree)),
             num_pixels: NumProperty::new(num_pixels, PropertyInfo::new("Number of Pixels"))
                 .set_slider(Some(NumSlider::new(0..500, 10))),
             speed: NumProperty::new(1.0, PropertyInfo::new("Speed"))
@@ -46,7 +47,7 @@ impl AnimationRunnerConfig {
         AnimationRunner::new(self)
     }
     
-    pub fn get_layer_property(&self) -> &PixelLayerProperty {
+    pub fn get_layer_property(&self) -> &TextureProperty {
         &self.layer
     }
     
@@ -56,23 +57,10 @@ impl AnimationRunnerConfig {
     
 }
 
-impl ComponentConfig for AnimationRunnerConfig {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
-
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![&self.layer, &self.speed]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![&mut self.layer, &mut self.speed]
-    }
-}
+impl_component_config!(self: AnimationRunnerConfig, self.info, [
+    self.layer,
+    self.speed,
+]);
 
 struct AnimationRunnerTask {
     layer: watch::Receiver<RwLock<Box<dyn Texture>>>,
@@ -212,17 +200,7 @@ impl Clone for AnimationRunner {
     }
 }
 
-impl Component for AnimationRunner {
-    fn config(&self) -> &dyn ComponentConfig {
-        &self.config
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        &mut self.config
-    }
-
-    fn component_type(&self) -> &'static str { "pixel" }
-}
+impl_component!(self: AnimationRunner, self.config, "pixel");
 
 impl Texture for AnimationRunner {
     fn get_blend_mode(&self) -> &BlendModeProperty {

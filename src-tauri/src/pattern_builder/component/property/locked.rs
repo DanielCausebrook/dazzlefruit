@@ -63,9 +63,9 @@ impl<T: Serialize + Clone> LockedProperty<T> {
     }
 }
 
-pub type PixelLayerProperty = LockedProperty<Box<dyn Texture>>;
+pub type TextureProperty = LockedProperty<Box<dyn Texture>>;
 
-impl Property for PixelLayerProperty {
+impl Property for TextureProperty {
     fn get_info(&self) -> &PropertyInfo { &self.info }
     fn get_type_id(&self) -> &'static str { "pixelLayer" }
     fn for_each_child_component<'a>(&self, mut func: Box<dyn FnMut(&dyn Component) + 'a>) {
@@ -80,7 +80,7 @@ impl Property for PixelLayerProperty {
     fn shallow_detach(&mut self) { self.shallow_detach() }
 }
 
-impl Serialize for PixelLayerProperty {
+impl Serialize for TextureProperty {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut struct_ser = serializer.serialize_struct("Property", 6)?;
         self.info.serialize_into::<S>(&mut struct_ser)?;
