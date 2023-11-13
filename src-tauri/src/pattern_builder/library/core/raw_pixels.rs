@@ -1,9 +1,9 @@
 use palette::WithAlpha;
+
 use crate::impl_component;
-use crate::pattern_builder::component::texture::{Texture};
 use crate::pattern_builder::component::basic_config::BasicPixelLayerConfig;
 use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
-use crate::pattern_builder::component::property::cloning::BlendModeProperty;
+use crate::pattern_builder::component::texture::Texture;
 
 #[derive(Clone)]
 pub struct RawPixels {

@@ -1,13 +1,12 @@
 use std::sync::Arc;
+
 use parking_lot::RwLock;
 use serde::{Serialize, Serializer};
-use tokio::sync::watch;
 use serde::ser::SerializeStruct;
-use crate::pattern_builder::component::{Component};
-use crate::pattern_builder::component::shared_component::SharedComponent;
+use tokio::sync::watch;
+
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::property::{Property, PropertyInfo, SerializableSender};
-use crate::pattern_builder::component::texture::Texture;
-use crate::pattern_builder::component::texture_generator::TextureGenerator;
 use crate::watch_guard::{RWLockWatchReadGuard, RWLockWatchSender, RWLockWatchWriteGuard};
 
 #[derive(Clone)]

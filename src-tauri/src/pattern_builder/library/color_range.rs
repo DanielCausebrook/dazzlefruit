@@ -3,7 +3,6 @@ use crate::pattern_builder::component::ComponentInfo;
 use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::cloning::{BlendModeProperty, ColorProperty};
 use crate::pattern_builder::component::property::num::NumProperty;
-use crate::pattern_builder::component::property::Property;
 use crate::pattern_builder::component::texture::Texture;
 
 #[derive(Clone)]

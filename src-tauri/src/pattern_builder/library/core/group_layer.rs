@@ -3,7 +3,7 @@ use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
 
 use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
+use crate::pattern_builder::component::{Component, ComponentInfo};
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};

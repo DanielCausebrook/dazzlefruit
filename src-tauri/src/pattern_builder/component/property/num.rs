@@ -1,9 +1,11 @@
-use num_traits::Num;
-use serde::{Serialize, Serializer};
 use std::ops::Range;
 use std::sync::Arc;
-use tokio::sync::watch;
+
+use num_traits::Num;
+use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use tokio::sync::watch;
+
 use crate::pattern_builder::component::property::{Property, PropertyInfo, SerializableSender};
 
 #[derive(Clone, Serialize)]

@@ -118,11 +118,11 @@ macro_rules! __internal_impl_component_config {
             }
 
             fn properties(&$sel) -> Vec<&dyn $crate::pattern_builder::component::property::Property> {
-                vec![$( &$prop as &dyn Property),*]
+                vec![$( &$prop as &dyn $crate::pattern_builder::component::property::Property),*]
             }
 
             fn properties_mut(&mut $sel) -> Vec<&mut dyn $crate::pattern_builder::component::property::Property> {
-                vec![$(&mut $prop as &mut dyn Property),*]
+                vec![$(&mut $prop as &mut dyn $crate::pattern_builder::component::property::Property),*]
             }
         }
     };

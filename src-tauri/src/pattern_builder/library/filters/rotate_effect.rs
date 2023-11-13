@@ -1,9 +1,10 @@
 use palette::Mix;
+
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::data::PixelFrame;
-use crate::pattern_builder::component::property::{Property, PropertyInfo};
+use crate::pattern_builder::component::filter::Filter;
+use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::property::cloning::BoolProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 
