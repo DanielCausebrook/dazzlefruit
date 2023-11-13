@@ -67,8 +67,8 @@ impl<T: Num + Copy + Serialize + Send + Sync + 'static> NumProperty<T> {
 }
 
 impl<T: Num + Copy + Serialize + Send + Sync + 'static> Property for NumProperty<T> {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "num" }
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "num" }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         self.replace(T::from_str_radix(&serialized_value, 10).map_err(|_| "Could not parse number.")?);
         Ok(())
@@ -136,8 +136,8 @@ impl<T: Num + Copy + Serialize + Send + Sync + 'static> OptionNumProperty<T> {
 }
 
 impl<T: Num + Copy + Serialize + Send + Sync + 'static> Property for OptionNumProperty<T> {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "optionNum" }
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "optionNum" }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         todo!()
     }

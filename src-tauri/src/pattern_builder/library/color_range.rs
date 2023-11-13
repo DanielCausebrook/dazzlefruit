@@ -1,6 +1,6 @@
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::cloning::{BlendModeProperty, ColorProperty};
 use crate::pattern_builder::component::property::num::NumProperty;
 use crate::pattern_builder::component::property::Property;
@@ -24,8 +24,8 @@ impl_component_config!(self: ColorRange, self.info, [
 ]);
 
 impl Texture for ColorRange {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.blend_mode.get()
     }
 
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {

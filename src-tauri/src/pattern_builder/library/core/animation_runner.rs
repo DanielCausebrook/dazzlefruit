@@ -9,12 +9,11 @@ use tokio::time::{interval, MissedTickBehavior};
 
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::{BlendModeProperty, BoolProperty};
-use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::texture::{Texture, TextureProperty};
 use crate::watch_guard::RWLockWatchReceiver;
 
 const FPS: f32 = 30.0;
@@ -203,8 +202,8 @@ impl Clone for AnimationRunner {
 impl_component!(self: AnimationRunner, self.config, "pixel");
 
 impl Texture for AnimationRunner {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.config.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.config.blend_mode.get()
     }
 
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {

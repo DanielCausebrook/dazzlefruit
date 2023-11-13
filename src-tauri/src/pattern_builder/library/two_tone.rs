@@ -5,12 +5,11 @@ use rand::random;
 
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::texture::{Texture, TextureProperty};
 
 #[derive(Clone)]
 pub struct TwoToneConfig {
@@ -54,28 +53,28 @@ impl TwoToneConfig {
 
     pub fn init_gradient_width(mut self, value: impl Into<NumProperty<f64>>) -> Self {
         self.gradient_width = value.into()
-            .set_info(self.gradient_width.get_info().clone())
+            .set_info(self.gradient_width.info().clone())
             .set_slider(self.gradient_width.get_slider().clone());
         self
     }
 
     pub fn init_gradient_offset(mut self, value: impl Into<NumProperty<f64>>) -> Self {
         self.gradient_offset = value.into()
-            .set_info(self.gradient_offset.get_info().clone())
+            .set_info(self.gradient_offset.info().clone())
             .set_slider(self.gradient_offset.get_slider().clone());
         self
     }
 
     pub fn init_noise_velocity(mut self, value: impl Into<NumProperty<f64>>) -> Self {
         self.noise_travel_speed = value.into()
-            .set_info(self.noise_travel_speed.get_info().clone())
+            .set_info(self.noise_travel_speed.info().clone())
             .set_slider(self.noise_travel_speed.get_slider().clone());
         self
     }
 
     pub fn init_blend_mode(mut self, value: impl Into<BlendModeProperty>) -> Self {
         self.blend_mode = value.into()
-            .set_info(self.blend_mode.get_info().clone());
+            .set_info(self.blend_mode.info().clone());
         self
     }
 
@@ -124,8 +123,8 @@ impl TwoTone {
 impl_component!(self: TwoTone, self.config, "pixel");
 
 impl Texture for TwoTone {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.config.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.config.blend_mode.get()
     }
 
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {

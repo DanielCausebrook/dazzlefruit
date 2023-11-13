@@ -15,7 +15,7 @@ impl BasicPixelLayerConfig {
             blend_mode: BlendModeProperty::default(),
         }
     }
-    pub fn get_blend_mode(&self) -> &BlendModeProperty {
+    pub fn blend_mode(&self) -> &BlendModeProperty {
         &self.blend_mode
     }
 }

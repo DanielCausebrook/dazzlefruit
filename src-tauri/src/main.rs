@@ -21,8 +21,7 @@ use crate::neopixel_controller::NeopixelController;
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::BlendMode;
 use crate::pattern_builder::component::property::{PropertyInfo};
-use crate::pattern_builder::component::property::locked::TextureProducerProperty;
-use crate::pattern_builder::component::texture_generator::CyclingTextureGenerator;
+use crate::pattern_builder::component::texture_generator::{CyclingTextureGenerator, TextureGeneratorProperty};
 use crate::pattern_builder::library::core::{GroupLayer, SolidColor};
 use crate::pattern_builder::library::pulsing_blocks::PulsingBlocksConfig;
 use crate::pattern_builder::library::sparkles::SparklesConfig;
@@ -135,7 +134,7 @@ fn get_test_pattern_2() -> Box<dyn Texture> {
         Box::new(SolidColor::new(palette::named::PURPLE.into())),
         Box::new(SolidColor::new(palette::named::RED.into())),
     ]);
-    let pulsing_blocks = PulsingBlocksConfig::new(TextureProducerProperty::new(Box::new(producer), PropertyInfo::unnamed()));
+    let pulsing_blocks = PulsingBlocksConfig::new(TextureGeneratorProperty::new(Box::new(producer), PropertyInfo::unnamed()));
     Box::new(pulsing_blocks.into_texture())
 }
 fn main() {
@@ -154,9 +153,10 @@ fn main() {
                 SolidColor::new(Rgb::from_str("#FF00E1").unwrap().into()),
                 SolidColor::new(Rgb::from_str("#0433FF").unwrap().into())
             ));
-            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 1.0, 2.0).into_texture();
-            sparkles.get_blend_mode().replace(BlendMode::AlphaMask);
-            group.add_pixel_layer(sparkles);
+            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 1.0, 2.0);
+
+            sparkles.blend_mode().replace(BlendMode::AlphaMask);
+            group.add_pixel_layer(sparkles.into_texture());
             state.pattern_builder.set_layer(group);
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())

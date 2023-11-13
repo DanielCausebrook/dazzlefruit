@@ -52,8 +52,8 @@ impl<T: Clone + Serialize> CloningProperty<T> {
 pub(crate) type StringProperty = CloningProperty<String>;
 
 impl Property for StringProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "string" }
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "string" }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         self.replace(serialized_value);
         Ok(())
@@ -70,8 +70,8 @@ impl Serialize for StringProperty {
 pub(crate) type OptionStringProperty = CloningProperty<Option<String>>;
 
 impl Property for OptionStringProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "optionString" }
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "optionString" }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         todo!()
     }
@@ -87,8 +87,8 @@ impl Serialize for OptionStringProperty {
 pub(crate) type BoolProperty = CloningProperty<bool>;
 
 impl Property for BoolProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "bool" }
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "bool" }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         self.replace(bool::from_str(&serialized_value).map_err(|e| e.to_string())?);
         Ok(())
@@ -105,8 +105,8 @@ impl Serialize for BoolProperty {
 pub type BlendModeProperty = CloningProperty<BlendMode>;
 
 impl Property for BlendModeProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "blendMode" }
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "blendMode" }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         todo!()
     }
@@ -134,8 +134,8 @@ impl From<BlendMode> for BlendModeProperty {
 pub type ColorProperty = CloningProperty<LinSrgba>;
 
 impl Property for ColorProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "color" }
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "color" }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         let color = Rgb::from_str(serialized_value.as_str())
             .map_err(|e| e.to_string())?;

@@ -4,13 +4,12 @@ use rand_distr::Poisson;
 
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::texture::{Texture, TextureProperty};
 use crate::pattern_builder::library::filters::persistence_effect::{PersistenceEffect, PersistenceEffectConfig};
 
 #[derive(Clone)]
@@ -34,6 +33,9 @@ impl SparklesConfig {
             blend_mode: BlendModeProperty::default(),
             persistence_effect_config,
         }
+    }
+    pub fn blend_mode(&self) -> &BlendModeProperty {
+        &self.blend_mode
     }
     pub fn into_texture(self) -> Sparkles {
         Sparkles::new(self)
@@ -70,8 +72,8 @@ impl Sparkles {
 impl_component!(self: Sparkles, self.config, "pixel");
 
 impl Texture for Sparkles {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.config.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.config.blend_mode.get()
     }
 
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {

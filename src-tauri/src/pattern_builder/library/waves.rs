@@ -2,13 +2,12 @@ use palette::{Mix, WithAlpha};
 
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, Pixel, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, Pixel, PixelFrame};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 use crate::pattern_builder::component::property::Property;
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::texture::{Texture, TextureProperty};
 use crate::pattern_builder::math_functions::skew_sin;
 
 #[derive(Clone)]
@@ -59,8 +58,8 @@ impl_component_config!(self: Wave, self.info, [
 impl_component!(self: Wave, *self, "pixel");
 
 impl Texture for Wave {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.blend_mode.get()
     }
 
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {

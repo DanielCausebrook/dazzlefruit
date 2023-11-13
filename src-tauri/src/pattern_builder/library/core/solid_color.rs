@@ -1,7 +1,7 @@
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::ComponentInfo;
 use crate::pattern_builder::component::texture::Texture;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, Pixel, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, Pixel, PixelFrame};
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::{BlendModeProperty, ColorProperty};
 
@@ -29,8 +29,8 @@ impl_component_config!(self: SolidColor, self.info, [
 ]);
 
 impl Texture for SolidColor {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.blend_mode.get()
     }
 
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {

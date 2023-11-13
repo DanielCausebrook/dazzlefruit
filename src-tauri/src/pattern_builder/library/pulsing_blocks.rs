@@ -6,9 +6,9 @@ use crate::pattern_builder::component::ComponentInfo;
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::locked::TextureProducerProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::texture_generator::TextureGeneratorProperty;
 use crate::pattern_builder::library::core::SolidColor;
 use crate::pattern_builder::library::two_tone::{TwoTone, TwoToneConfig};
 
@@ -16,7 +16,7 @@ use crate::pattern_builder::library::two_tone::{TwoTone, TwoToneConfig};
 pub struct PulsingBlocksConfig {
     info: ComponentInfo,
     blend_mode: BlendModeProperty,
-    textures: TextureProducerProperty,
+    textures: TextureGeneratorProperty,
     textures_per_second: NumProperty<f64>,
     texture_duration: NumProperty<f64>,
     fade_in_out_duration: NumProperty<f64>,
@@ -26,7 +26,7 @@ pub struct PulsingBlocksConfig {
     block_softness: NumProperty<f64>,
 }
 impl PulsingBlocksConfig {
-    pub fn new(textures: TextureProducerProperty) -> Self {
+    pub fn new(textures: TextureGeneratorProperty) -> Self {
         Self {
             info: ComponentInfo::new("Pulsing Blocks"),
             blend_mode: BlendModeProperty::default(),
@@ -120,8 +120,8 @@ impl PulsingBlocks {
 impl_component!(self: PulsingBlocks, self.config, "pixel");
 
 impl Texture for PulsingBlocks {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.config.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.config.blend_mode.get()
     }
 
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {

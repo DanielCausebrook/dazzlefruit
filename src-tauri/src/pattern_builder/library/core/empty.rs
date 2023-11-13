@@ -2,7 +2,8 @@ use std::marker;
 use palette::WithAlpha;
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{ComponentInfo};
-use crate::pattern_builder::component::data::{FrameSize, PixelFrame};
+use crate::pattern_builder::component::shared_component::SharedComponent;
+use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
@@ -50,14 +51,14 @@ impl_component_config!(<T: EmptyType> self: Empty<T>, self.info, []);
 impl_component!(<T: EmptyType> self: Empty<T>, *self, T::get_component_type());
 
 impl TextureGenerator for Empty<EmptyTextureGenerator> {
-    fn next_texture(&mut self) -> Box<dyn Texture> {
-        Box::new(Empty::new())
+    fn next_texture(&mut self) -> SharedComponent<Box<dyn Texture>> {
+        SharedComponent::new(Box::new(Empty::new()))
     }
 }
 
 impl Texture for Empty<EmptyPixelLayer> {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.blend_mode.get()
     }
 
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {

@@ -12,7 +12,8 @@ use component::property::Property;
 use component::data::RandId;
 use crate::pattern_builder::component::data::{Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::view_serde::PatternBuilderViewData;
-use crate::pattern_builder::library::core::{AnimationRunner, AnimationRunnerConfig, SolidColor};
+use crate::pattern_builder::library::core::{SolidColor};
+use crate::pattern_builder::library::core::animation_runner::{AnimationRunner, AnimationRunnerConfig};
 use crate::tauri_events::PixelUpdatePayload;
 use crate::watch_guard::{RWLockWatchReadGuard, RWLockWatchWriteGuard};
 

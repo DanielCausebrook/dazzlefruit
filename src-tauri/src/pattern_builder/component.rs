@@ -12,6 +12,7 @@ pub mod texture;
 pub mod filter;
 pub mod texture_generator;
 mod macros;
+pub mod shared_component;
 
 pub trait Component: Send + Sync + DynClone + 'static {
     fn config(&self) -> &dyn ComponentConfig;

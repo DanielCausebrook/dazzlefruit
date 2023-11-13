@@ -44,7 +44,7 @@ impl PatternBuilderViewData {
     pub fn generate_property_map(&self) -> HashMap<RandId, Box<dyn Property>> {
         self.layer_configs.values()
             .flat_map(|layer_config| layer_config.get_component_config().properties())
-            .map(|prop| (prop.get_info().get_id(), clone_box(prop)))
+            .map(|prop| (prop.info().get_id(), clone_box(prop)))
             .collect::<HashMap<RandId, Box<dyn Property>>>()
     }
 }

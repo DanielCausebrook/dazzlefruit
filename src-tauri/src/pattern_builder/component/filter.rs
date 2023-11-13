@@ -1,5 +1,6 @@
 use dyn_clone::{clone_trait_object, DynClone};
 use crate::pattern_builder::component::{Component, ComponentConfig};
+use crate::pattern_builder::component::shared_component::SharedComponent;
 use crate::pattern_builder::component::data::PixelFrame;
 
 pub trait Filter: Component + DynClone {
@@ -24,5 +25,11 @@ impl Component for Box<dyn Filter> {
 impl Filter for Box<dyn Filter> {
     fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {
         self.as_mut().next_frame(t, active)
+    }
+}
+
+impl<T: Filter + Clone> Filter for SharedComponent<T> {
+    fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {
+        self.write().next_frame(t, active)
     }
 }

@@ -4,7 +4,7 @@ use serde::ser::SerializeStruct;
 
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
-use crate::pattern_builder::component::data::{DisplayPane, Frame, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
@@ -43,8 +43,8 @@ impl_component_config!(self: GroupLayer, self.info, [
 ]);
 
 impl Texture for GroupLayer {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.blend_mode
+    fn blend_mode(&self) -> BlendMode {
+        self.blend_mode.get()
     }
 
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
@@ -54,7 +54,7 @@ impl Texture for GroupLayer {
                     Layer::Pixel(pixel_layer) => {
                         let pixel_data = pixel_layer.next_frame(t, num_pixels);
                         match active_option {
-                            Some(active) => Some(pixel_data.blend(active, pixel_layer.get_blend_mode().get())),
+                            Some(active) => Some(pixel_data.blend(active, pixel_layer.blend_mode())),
                             None => Some(pixel_data),
                         }
                     },
@@ -94,8 +94,8 @@ impl Layer {
 type LayerVecProperty = LockedProperty<Vec<Layer>>;
 
 impl Property for LayerVecProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.get_info() }
-    fn get_type_id(&self) -> &'static str { "layerVec" }
+    fn info(&self) -> &PropertyInfo { &self.info() }
+    fn type_id(&self) -> &'static str { "layerVec" }
     fn for_each_child_component<'a>(&self, mut func: Box<dyn FnMut(&dyn Component) + 'a>) {
         for layer in self.read().iter() {
             func(layer.as_component_ref());
@@ -116,8 +116,8 @@ impl Property for LayerVecProperty {
 impl Serialize for LayerVecProperty {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut struct_ser = serializer.serialize_struct("Property", 6)?;
-        self.get_info().serialize_into::<S>(&mut struct_ser)?;
-        struct_ser.serialize_field("property_type", self.get_type_id())?;
+        self.info().serialize_into::<S>(&mut struct_ser)?;
+        struct_ser.serialize_field("property_type", self.type_id())?;
         struct_ser.serialize_field("value", &self.read().iter()
             .map(|layer| layer.as_component_ref().config().info().get_id())
             .collect::<Vec<_>>()

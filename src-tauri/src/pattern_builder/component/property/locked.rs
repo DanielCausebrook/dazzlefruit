@@ -4,6 +4,7 @@ use serde::{Serialize, Serializer};
 use tokio::sync::watch;
 use serde::ser::SerializeStruct;
 use crate::pattern_builder::component::{Component};
+use crate::pattern_builder::component::shared_component::SharedComponent;
 use crate::pattern_builder::component::property::{Property, PropertyInfo, SerializableSender};
 use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::texture_generator::TextureGenerator;
@@ -22,7 +23,7 @@ impl<T: Clone> LockedProperty<T> {
             value: Arc::new(SerializableSender::new(RwLock::new(val))),
         }
     }
-    pub fn get_info(&self) -> &PropertyInfo {
+    pub fn info(&self) -> &PropertyInfo {
         &self.info
     }
 
@@ -53,26 +54,16 @@ impl<T: Clone> LockedProperty<T> {
     }
 }
 
-impl<T: Serialize + Clone> LockedProperty<T> {
-    fn serialize_with<S>(&self, type_id: &str, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let mut struct_ser = serializer.serialize_struct("Property", 6)?;
-        self.info.serialize_into::<S>(&mut struct_ser)?;
-        struct_ser.serialize_field("property_type", type_id)?;
-        struct_ser.serialize_field("value", &self.value)?;
-        struct_ser.end()
-    }
-}
+pub type ComponentProperty<T> = LockedProperty<T>;
 
-pub type TextureProperty = LockedProperty<Box<dyn Texture>>;
-
-impl Property for TextureProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "pixelLayer" }
+impl<T: Component + Clone> Property for ComponentProperty<T> {
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "component" }
     fn for_each_child_component<'a>(&self, mut func: Box<dyn FnMut(&dyn Component) + 'a>) {
-        func(self.read().as_ref());
+        func(&*self.read());
     }
     fn for_each_child_component_mut<'a>(&mut self, mut func: Box<dyn FnMut(&mut dyn Component) + 'a>) {
-        func(self.write().as_mut())
+        func(&mut *self.write())
     }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
         todo!()
@@ -80,30 +71,29 @@ impl Property for TextureProperty {
     fn shallow_detach(&mut self) { self.shallow_detach() }
 }
 
-impl Serialize for TextureProperty {
+impl<T: Component + Clone> Serialize for ComponentProperty<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut struct_ser = serializer.serialize_struct("Property", 6)?;
         self.info.serialize_into::<S>(&mut struct_ser)?;
-        struct_ser.serialize_field("property_type", self.get_type_id())?;
+        struct_ser.serialize_field("property_type", self.type_id())?;
         struct_ser.serialize_field("value", &self.read().config().info().get_id())?;
         struct_ser.end()
     }
 }
 
+pub type ComponentVecProperty<T> = LockedProperty<Vec<T>>;
 
-pub type TextureVecProperty = LockedProperty<Vec<Box<dyn Texture>>>;
-
-impl Property for TextureVecProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "pixelBlueprintVec" }
+impl<T: Component + Clone> Property for ComponentVecProperty<T> {
+    fn info(&self) -> &PropertyInfo { &self.info }
+    fn type_id(&self) -> &'static str { "componentVec" }
     fn for_each_child_component<'a>(&self, mut func: Box<dyn FnMut(&dyn Component) + 'a>) {
-        for texture in self.read().iter() {
-            func(texture.as_ref());
+        for component in self.read().iter() {
+            func(& *component);
         }
     }
     fn for_each_child_component_mut<'a>(&mut self, mut func: Box<dyn FnMut(&mut dyn Component) + 'a>) {
-        for texture in self.write().iter_mut() {
-            func(texture.as_mut());
+        for component in self.write().iter_mut() {
+            func(&mut *component);
         }
     }
     fn try_update(&self, serialized_value: String) -> Result<(), String> {
@@ -113,42 +103,15 @@ impl Property for TextureVecProperty {
     fn shallow_detach(&mut self) { self.shallow_detach(); }
 }
 
-impl Serialize for TextureVecProperty {
+impl<T: Component + Clone> Serialize for ComponentVecProperty<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut struct_ser = serializer.serialize_struct("Property", 6)?;
         self.info.serialize_into::<S>(&mut struct_ser)?;
-        struct_ser.serialize_field("property_type", self.get_type_id())?;
+        struct_ser.serialize_field("property_type", self.type_id())?;
         struct_ser.serialize_field("value", &self.read().iter()
             .map(|texture| texture.config().info().get_id())
             .collect::<Vec<_>>()
         )?;
-        struct_ser.end()
-    }
-}
-
-pub type TextureProducerProperty = LockedProperty<Box<dyn TextureGenerator>>;
-
-impl Property for TextureProducerProperty {
-    fn get_info(&self) -> &PropertyInfo { &self.info }
-    fn get_type_id(&self) -> &'static str { "textureProducer" }
-    fn for_each_child_component<'a>(&self, mut func: Box<dyn FnMut(&dyn Component) + 'a>) {
-        func(self.read().as_ref());
-    }
-    fn for_each_child_component_mut<'a>(&mut self, mut func: Box<dyn FnMut(&mut dyn Component) + 'a>) {
-        func(self.write().as_mut())
-    }
-    fn try_update(&self, serialized_value: String) -> Result<(), String> {
-        todo!()
-    }
-    fn shallow_detach(&mut self) { self.shallow_detach() }
-}
-
-impl Serialize for TextureProducerProperty {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let mut struct_ser = serializer.serialize_struct("Property", 6)?;
-        self.info.serialize_into::<S>(&mut struct_ser)?;
-        struct_ser.serialize_field("property_type", self.get_type_id())?;
-        struct_ser.serialize_field("value", &self.read().config().info().get_id())?;
         struct_ser.end()
     }
 }

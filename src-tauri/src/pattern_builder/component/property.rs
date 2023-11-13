@@ -65,9 +65,9 @@ impl Serialize for PropertyInfo {
 }
 
 pub trait Property: DynClone + erased_serde::Serialize + Send + Sync + 'static {
-    fn get_info(&self) -> &PropertyInfo;
+    fn info(&self) -> &PropertyInfo;
 
-    fn get_type_id(&self) -> &'static str;
+    fn type_id(&self) -> &'static str;
 
     fn for_each_child_component<'a>(&self, _func: Box<dyn FnMut(&dyn Component) + 'a>) {}
 
@@ -86,12 +86,12 @@ clone_trait_object!(Property);
 serialize_trait_object!(Property);
 
 impl<T: Property + Clone + Serialize + ?Sized> Property for Box<T> {
-    fn get_info(&self) -> &PropertyInfo {
-        self.as_ref().get_info()
+    fn info(&self) -> &PropertyInfo {
+        self.as_ref().info()
     }
 
-    fn get_type_id(&self) -> &'static str {
-        self.as_ref().get_type_id()
+    fn type_id(&self) -> &'static str {
+        self.as_ref().type_id()
     }
 
     fn for_each_child_component<'a>(&self, func: Box<dyn FnMut(&dyn Component) + 'a>) {

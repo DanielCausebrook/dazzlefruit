@@ -2,7 +2,7 @@ use palette::WithAlpha;
 use crate::impl_component;
 use crate::pattern_builder::component::texture::{Texture};
 use crate::pattern_builder::component::basic_config::BasicPixelLayerConfig;
-use crate::pattern_builder::component::data::{FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
 
 #[derive(Clone)]
@@ -20,8 +20,8 @@ impl RawPixels {
 impl_component!(self: RawPixels, self.config, "pixel");
 
 impl Texture for RawPixels {
-    fn get_blend_mode(&self) -> &BlendModeProperty {
-        &self.config.get_blend_mode()
+    fn blend_mode(&self) -> BlendMode {
+        self.config.blend_mode().get()
     }
 
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
