@@ -11,6 +11,7 @@ pub mod data;
 pub mod texture;
 pub mod filter;
 pub mod texture_generator;
+mod macros;
 
 pub trait Component: Send + Sync + DynClone + 'static {
     fn config(&self) -> &dyn ComponentConfig;
@@ -33,23 +34,6 @@ impl<T> Component for Box<T> where T: Component + Clone + ?Sized {
     }
 }
 
-#[macro_export]
-macro_rules! impl_component {
-    ($sel:ident: $struct:ty, $config:expr, $component_type:literal) => {
-        impl Component for $struct {
-            fn config(&$sel) -> &dyn ComponentConfig {
-                &$config
-            }
-            fn config_mut(&mut $sel) -> &mut dyn ComponentConfig {
-                &mut $config
-            }
-            fn component_type(&$sel) -> &'static str {
-                $component_type
-            }
-        }
-    };
-}
-
 pub trait ComponentConfig: Send + Sync + DynClone + 'static {
     fn info(&self) -> &ComponentInfo;
     fn info_mut(&mut self) -> &mut ComponentInfo;
@@ -68,29 +52,6 @@ impl<T> ComponentConfig for Box<T> where T: ComponentConfig + Clone + ?Sized {
     fn properties(&self) -> Vec<&dyn Property> { self.as_ref().properties() }
     fn properties_mut(&mut self) -> Vec<&mut dyn Property> { self.as_mut().properties_mut() }
     fn detach(&mut self) { self.as_mut().detach() }
-}
-
-#[macro_export]
-macro_rules! impl_component_config {
-    ($sel:ident: $struct:ty, $info:expr, [$( $prop:expr ),*$(,)?]) => {
-        impl ComponentConfig for $struct {
-            fn info(&$sel) -> &ComponentInfo {
-                &$info
-            }
-
-            fn info_mut(&mut $sel) -> &mut ComponentInfo {
-                &mut $info
-            }
-
-            fn properties(&$sel) -> Vec<&dyn Property> {
-                vec![$( &$prop as &dyn Property),*]
-            }
-
-            fn properties_mut(&mut $sel) -> Vec<&mut dyn Property> {
-                vec![$(&mut $prop as &mut dyn Property),*]
-            }
-        }
-    };
 }
 
 #[derive(Clone)]

@@ -7,31 +7,28 @@
 
 extern crate core;
 
-use std::f64::consts::{E, PI};
 use std::str::FromStr;
 
-use palette::{Lighten, Mix, WithAlpha};
+use palette::{Lighten, WithAlpha};
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
 
-use crate::neopixel_controller::NeopixelController;
 use pattern_builder::component::texture::Texture;
-use pattern_builder::math_functions::skew_sin;
-use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, Pixel, PixelFrame};
-use crate::pattern_builder::component::property::locked::{TextureProducerProperty, TextureProperty};
-use crate::pattern_builder::component::property::{Property, PropertyInfo};
-use crate::pattern_builder::component::property::cloning::{BlendModeProperty, ColorProperty};
-use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
+
+use crate::neopixel_controller::NeopixelController;
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::data::BlendMode;
+use crate::pattern_builder::component::property::{PropertyInfo};
+use crate::pattern_builder::component::property::locked::TextureProducerProperty;
 use crate::pattern_builder::component::texture_generator::CyclingTextureGenerator;
-use crate::pattern_builder::PatternBuilder;
 use crate::pattern_builder::library::core::{GroupLayer, SolidColor};
 use crate::pattern_builder::library::pulsing_blocks::PulsingBlocksConfig;
-use crate::pattern_builder::library::sparkles::{SparklesConfig};
+use crate::pattern_builder::library::sparkles::SparklesConfig;
 use crate::pattern_builder::library::two_tone::TwoToneConfig;
 use crate::pattern_builder::library::waves::Wave;
+use crate::pattern_builder::PatternBuilder;
 use crate::pico_connection::PicoConnectionHandle;
 use crate::tauri_events::DebugMessagePayload;
 
@@ -152,10 +149,15 @@ fn main() {
             };
             // state.pattern_builder.set_layer(get_birds_pattern());
             // state.pattern_builder.set_layer(get_test_pattern_2());
-            state.pattern_builder.set_layer(Wave::new(
+            let group = GroupLayer::new();
+            group.add_pixel_layer(Wave::new(
                 SolidColor::new(Rgb::from_str("#FF00E1").unwrap().into()),
                 SolidColor::new(Rgb::from_str("#0433FF").unwrap().into())
             ));
+            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 1.0, 2.0).into_texture();
+            sparkles.get_blend_mode().replace(BlendMode::AlphaMask);
+            group.add_pixel_layer(sparkles);
+            state.pattern_builder.set_layer(group);
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())
         })

@@ -1,13 +1,14 @@
 use nalgebra_glm::smoothstep;
 use palette::WithAlpha;
+
 use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::{ComponentInfo, ComponentConfig, Component};
+use crate::pattern_builder::component::ComponentInfo;
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, Frame, FrameSize, PixelFrame};
-use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
 use crate::pattern_builder::component::property::locked::TextureProducerProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
+use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::library::core::SolidColor;
 use crate::pattern_builder::library::two_tone::{TwoTone, TwoToneConfig};
 

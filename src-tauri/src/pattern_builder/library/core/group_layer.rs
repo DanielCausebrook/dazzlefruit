@@ -1,14 +1,15 @@
 use palette::WithAlpha;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
-use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::component::data::{DisplayPane, Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::locked::{LockedProperty};
+use crate::pattern_builder::component::property::locked::LockedProperty;
+use crate::pattern_builder::component::texture::Texture;
 
 #[derive(Clone)]
 pub struct GroupLayer {

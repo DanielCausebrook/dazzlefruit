@@ -3,7 +3,6 @@ use palette::WithAlpha;
 use crate::impl_component;
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::basic_config::BasicConfig;
-use crate::pattern_builder::component::{Component, ComponentConfig};
 use crate::pattern_builder::component::data::PixelFrame;
 
 #[derive(Clone)]

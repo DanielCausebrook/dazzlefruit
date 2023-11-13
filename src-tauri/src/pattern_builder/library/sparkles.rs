@@ -1,15 +1,16 @@
 use palette::WithAlpha;
 use rand::distributions::{Distribution, Uniform};
 use rand_distr::Poisson;
+
 use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::ComponentInfo;
 use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
 use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
+use crate::pattern_builder::component::texture::Texture;
 use crate::pattern_builder::library::filters::persistence_effect::{PersistenceEffect, PersistenceEffectConfig};
 
 #[derive(Clone)]

@@ -2,14 +2,15 @@ use nalgebra_glm::smoothstep;
 use noise::{NoiseFn, OpenSimplex};
 use palette::Mix;
 use rand::random;
+
 use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::{ComponentInfo, ComponentConfig, Component};
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::ComponentInfo;
 use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
 use crate::pattern_builder::component::property::cloning::BlendModeProperty;
 use crate::pattern_builder::component::property::locked::TextureProperty;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
+use crate::pattern_builder::component::texture::Texture;
 
 #[derive(Clone)]
 pub struct TwoToneConfig {

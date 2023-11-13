@@ -1,6 +1,7 @@
 use palette::WithAlpha;
+
 use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
+use crate::pattern_builder::component::ComponentInfo;
 use crate::pattern_builder::component::data::{BlendMode, Frame, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
