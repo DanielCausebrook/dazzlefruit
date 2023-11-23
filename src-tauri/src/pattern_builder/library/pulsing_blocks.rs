@@ -15,7 +15,6 @@ use crate::pattern_builder::library::two_tone::{TwoTone, TwoToneConfig};
 #[derive(Clone)]
 pub struct PulsingBlocksConfig {
     info: ComponentInfo,
-    blend_mode: BlendModeProperty,
     textures: TextureGeneratorProperty,
     textures_per_second: NumProperty<f64>,
     texture_duration: NumProperty<f64>,
@@ -29,7 +28,6 @@ impl PulsingBlocksConfig {
     pub fn new(textures: TextureGeneratorProperty) -> Self {
         Self {
             info: ComponentInfo::new("Pulsing Blocks"),
-            blend_mode: BlendModeProperty::default(),
             textures: textures.set_info(PropertyInfo::new("Textures").display_pane(DisplayPane::Tree)),
             textures_per_second: NumProperty::new(1.0, PropertyInfo::new("Textures per Second"))
                 .set_slider(Some(NumSlider::new(0.0..5.0, 0.05))),
@@ -120,10 +118,6 @@ impl PulsingBlocks {
 impl_component!(self: PulsingBlocks, self.config, "pixel");
 
 impl Texture for PulsingBlocks {
-    fn blend_mode(&self) -> BlendMode {
-        self.config.blend_mode.get()
-    }
-
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
         let texture_delay = 1.0 / self.config.textures_per_second.get();
         if t - self.last_texture_layer_t > texture_delay {

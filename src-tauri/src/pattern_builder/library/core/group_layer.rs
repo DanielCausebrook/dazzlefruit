@@ -4,18 +4,17 @@ use serde::ser::SerializeStruct;
 
 use crate::{impl_component, impl_component_config};
 use crate::pattern_builder::component::{Component, ComponentInfo};
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, Frame, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{DisplayPane, Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
 use crate::pattern_builder::component::property::{Property, PropertyInfo};
-use crate::pattern_builder::component::property::cloning::BlendModeProperty;
 use crate::pattern_builder::component::property::locked::LockedProperty;
 use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::library::core::texture_layer::TextureLayer;
 
 #[derive(Clone)]
 pub struct GroupLayer {
     info: ComponentInfo,
     layers: LayerVecProperty,
-    blend_mode: BlendModeProperty,
 }
 
 impl GroupLayer {
@@ -23,15 +22,18 @@ impl GroupLayer {
         Self {
             info: ComponentInfo::new("Group"),
             layers: LayerVecProperty::new(vec![], PropertyInfo::unnamed().display_pane(DisplayPane::Tree)),
-            blend_mode: BlendModeProperty::default(),
         }
     }
 
-    pub fn add_pixel_layer(&self, layer: impl Texture) {
-        self.layers.write().push(Layer::Pixel(Box::new(layer)))
+    pub fn add_texture(&self, texture: impl Texture) {
+        self.add_texture_layer(TextureLayer::new(texture));
     }
 
-    pub fn add_filter_layer(&self, layer: impl Filter) {
+    pub fn add_texture_layer(&self, layer: TextureLayer) {
+        self.layers.write().push(Layer::Texture(layer))
+    }
+
+    pub fn add_filter(&self, layer: impl Filter) {
         self.layers.write().push(Layer::Filter(Box::new(layer)))
     }
 }
@@ -43,18 +45,14 @@ impl_component_config!(self: GroupLayer, self.info, [
 ]);
 
 impl Texture for GroupLayer {
-    fn blend_mode(&self) -> BlendMode {
-        self.blend_mode.get()
-    }
-
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
         let mut pixel_data = self.layers.write().iter_mut()
             .fold(None, |active_option, layer| {
                 match layer {
-                    Layer::Pixel(pixel_layer) => {
-                        let pixel_data = pixel_layer.next_frame(t, num_pixels);
+                    Layer::Texture(pixel_layer) => {
+                        let pixel_data: PixelFrame = pixel_layer.next_frame(t, num_pixels).into_iter().map(|mut pixel| pixel.with_alpha(pixel.alpha * pixel_layer.opacity())).collect();
                         match active_option {
-                            Some(active) => Some(pixel_data.blend(active, pixel_layer.blend_mode())),
+                            Some(active) => Some(pixel_data.blend(active, pixel_layer.blend_mode().get())),
                             None => Some(pixel_data),
                         }
                     },
@@ -71,21 +69,21 @@ impl Texture for GroupLayer {
 
 #[derive(Clone)]
 enum Layer {
-    Pixel(Box<dyn Texture>),
+    Texture(TextureLayer),
     Filter(Box<dyn Filter>),
 }
 
 impl Layer {
     fn as_component_ref(&self) -> &dyn Component {
         match self {
-            Layer::Pixel(ref layer) => layer,
+            Layer::Texture(ref layer) => layer,
             Layer::Filter(ref layer) => layer,
         }
     }
 
     fn as_component_mut(&mut self) -> &mut dyn Component {
         match self {
-            Layer::Pixel(ref mut layer) => layer,
+            Layer::Texture(ref mut layer) => layer,
             Layer::Filter(ref mut  layer) => layer,
         }
     }

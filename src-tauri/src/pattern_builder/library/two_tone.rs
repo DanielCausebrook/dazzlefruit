@@ -20,7 +20,6 @@ pub struct TwoToneConfig {
     gradient_offset: NumProperty<f64>,
     noise_scaling: NumProperty<f64>,
     noise_travel_speed: NumProperty<f64>,
-    blend_mode: BlendModeProperty,
 }
 
 impl TwoToneConfig {
@@ -43,7 +42,6 @@ impl TwoToneConfig {
                 .set_slider(Some(NumSlider::new(0.0..1.0, 0.01))),
             gradient_offset: NumProperty::new(0.0, PropertyInfo::new("Gradient Offset"))
                 .set_slider(Some(NumSlider::new(-1.0..1.0, 0.01, ))),
-            blend_mode: BlendModeProperty::default(),
         }
     }
 
@@ -69,12 +67,6 @@ impl TwoToneConfig {
         self.noise_travel_speed = value.into()
             .set_info(self.noise_travel_speed.info().clone())
             .set_slider(self.noise_travel_speed.get_slider().clone());
-        self
-    }
-
-    pub fn init_blend_mode(mut self, value: impl Into<BlendModeProperty>) -> Self {
-        self.blend_mode = value.into()
-            .set_info(self.blend_mode.info().clone());
         self
     }
 
@@ -123,10 +115,6 @@ impl TwoTone {
 impl_component!(self: TwoTone, self.config, "pixel");
 
 impl Texture for TwoTone {
-    fn blend_mode(&self) -> BlendMode {
-        self.config.blend_mode.get()
-    }
-
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
         let colors0 = self.config.textures.0.write().next_frame(t, num_pixels);
         let colors1 = self.config.textures.1.write().next_frame(t, num_pixels);

@@ -11,7 +11,6 @@ pub struct ColorRange {
     color: ColorProperty,
     variance: NumProperty<f64>,
     speed: NumProperty<f64>,
-    blend_mode: BlendModeProperty,
 }
 
 impl_component!(self: ColorRange, *self, "pixel");
@@ -23,10 +22,6 @@ impl_component_config!(self: ColorRange, self.info, [
 ]);
 
 impl Texture for ColorRange {
-    fn blend_mode(&self) -> BlendMode {
-        self.blend_mode.get()
-    }
-
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
         let color = self.color.get();
         todo!()

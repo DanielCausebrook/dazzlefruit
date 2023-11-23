@@ -47,6 +47,7 @@ pub trait ComponentConfig: Send + Sync + DynClone + 'static {
         }
     }
 }
+clone_trait_object!(ComponentConfig);
 impl<T> ComponentConfig for Box<T> where T: ComponentConfig + Clone + ?Sized {
     fn info(&self) -> &ComponentInfo { self.as_ref().info() }
     fn info_mut(&mut self) -> &mut ComponentInfo { self.as_mut().info_mut() }

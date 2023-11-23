@@ -21,7 +21,6 @@ const FPS: f32 = 30.0;
 #[derive(Clone)]
 pub struct AnimationRunnerConfig {
     info: ComponentInfo,
-    blend_mode: BlendModeProperty,
     layer: TextureProperty,
     num_pixels: NumProperty<FrameSize>,
     speed: NumProperty<f64>,
@@ -32,7 +31,6 @@ impl AnimationRunnerConfig {
     pub fn new(layer: impl Texture, num_pixels: FrameSize) -> Self {
         Self {
             info: ComponentInfo::new("Animation Runner"),
-            blend_mode: BlendModeProperty::default(),
             layer: TextureProperty::new(Box::new(layer), PropertyInfo::unnamed().display_pane(DisplayPane::Tree)),
             num_pixels: NumProperty::new(num_pixels, PropertyInfo::new("Number of Pixels"))
                 .set_slider(Some(NumSlider::new(0..500, 10))),
@@ -202,10 +200,6 @@ impl Clone for AnimationRunner {
 impl_component!(self: AnimationRunner, self.config, "pixel");
 
 impl Texture for AnimationRunner {
-    fn blend_mode(&self) -> BlendMode {
-        self.config.blend_mode.get()
-    }
-
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
         let mut pixel_data = self.update_receiver.borrow().clone();
         pixel_data.resize_with(num_pixels as usize, || palette::named::BLACK.with_alpha(0.0).into_linear());

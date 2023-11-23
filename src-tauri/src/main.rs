@@ -9,7 +9,8 @@ extern crate core;
 
 use std::str::FromStr;
 
-use palette::{Lighten, WithAlpha};
+use nalgebra_glm::smoothstep;
+use palette::{Lighten, Mix, WithAlpha};
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
 use tokio::sync::RwLock;
@@ -18,15 +19,19 @@ use tokio::sync::RwLockWriteGuard;
 use pattern_builder::component::texture::Texture;
 
 use crate::neopixel_controller::NeopixelController;
-use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::BlendMode;
-use crate::pattern_builder::component::property::{PropertyInfo};
+use crate::pattern_builder::component::{Component, ComponentInfo};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::property::PropertyInfo;
+use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
+use crate::pattern_builder::component::texture::TextureProperty;
 use crate::pattern_builder::component::texture_generator::{CyclingTextureGenerator, TextureGeneratorProperty};
 use crate::pattern_builder::library::core::{GroupLayer, SolidColor};
+use crate::pattern_builder::library::core::texture_layer::TextureLayer;
 use crate::pattern_builder::library::pulsing_blocks::PulsingBlocksConfig;
 use crate::pattern_builder::library::sparkles::SparklesConfig;
 use crate::pattern_builder::library::two_tone::TwoToneConfig;
 use crate::pattern_builder::library::waves::Wave;
+use crate::pattern_builder::math_functions::triangle_sin;
 use crate::pattern_builder::PatternBuilder;
 use crate::pico_connection::PicoConnectionHandle;
 use crate::tauri_events::DebugMessagePayload;
@@ -81,11 +86,12 @@ fn get_birds_pattern() -> Box<dyn Texture> {
     ).init_gradient_width(0.3);
 
     let sparkle_color_group = GroupLayer::new();
-    let sparkle_mask = TwoToneConfig::new(
+    let sparkle_mask = TextureLayer::new(TwoToneConfig::new(
         (SolidColor::new(palette::named::BLACK.into()), SolidColor::new(palette::named::BLACK.transparent().into())),
         0.3,
         0.1,
-    ).init_noise_velocity(5.0).init_gradient_offset(-0.2).init_blend_mode(BlendMode::AlphaMask);
+    ).init_noise_velocity(5.0).init_gradient_offset(-0.2).into_texture());
+    sparkle_mask.blend_mode().replace(BlendMode::AlphaMask);
     let sparkle_colors = TwoToneConfig::new(
         (
             SolidColor::new(palette::named::BLUE.into_linear().lighten(0.3).into()),
@@ -94,13 +100,13 @@ fn get_birds_pattern() -> Box<dyn Texture> {
         2.0,
         10.0
     ).init_gradient_width(0.3);
-    sparkle_color_group.add_pixel_layer(sparkle_colors.into_texture());
-    sparkle_color_group.add_pixel_layer(sparkle_mask.into_texture());
+    sparkle_color_group.add_texture(sparkle_colors.into_texture());
+    sparkle_color_group.add_texture_layer(sparkle_mask);
     let sparkles = SparklesConfig::new(sparkle_color_group, 1.0, 1.0);
 
     let group = GroupLayer::new();
-    group.add_pixel_layer(colors.into_texture());
-    group.add_pixel_layer(sparkles.into_texture());
+    group.add_texture(colors.into_texture());
+    group.add_texture(sparkles.into_texture());
     // group.add_filter_layer(PersistenceEffectConfig::new(2.0).create());
     // group.add_filter_layer(Box::new(bird_mask));
 
@@ -123,7 +129,7 @@ fn get_test_pattern() -> Box<dyn Texture> {
         )
             .init_gradient_offset(0.15)
             .init_gradient_width(0.15);
-        group.add_pixel_layer(tt.into_texture());
+        group.add_texture(tt.into_texture());
     }
     Box::new(group)
 }
@@ -137,6 +143,58 @@ fn get_test_pattern_2() -> Box<dyn Texture> {
     let pulsing_blocks = PulsingBlocksConfig::new(TextureGeneratorProperty::new(Box::new(producer), PropertyInfo::unnamed()));
     Box::new(pulsing_blocks.into_texture())
 }
+
+#[derive(Clone)]
+pub struct Pulse {
+    info: ComponentInfo,
+    texture: TextureProperty,
+    period: NumProperty<f32>,
+    width: NumProperty<f32>,
+    smoothness: NumProperty<f32>,
+}
+
+impl Pulse {
+    pub fn new(texture: impl Texture) -> Self {
+        Self {
+            info: ComponentInfo::new("Pulse"),
+            texture: TextureProperty::new(Box::new(texture), PropertyInfo::new("Texture").display_pane(DisplayPane::Tree)),
+            period: NumProperty::new(2.0, PropertyInfo::new("Period")).set_slider(Some(NumSlider::new(0.0..10.0, 0.1))),
+            width: NumProperty::new(5.0, PropertyInfo::new("Width")).set_slider(Some(NumSlider::new(1.0..20.0, 0.2))),
+            smoothness: NumProperty::new(10.0, PropertyInfo::new("Smoothness")).set_slider(Some(NumSlider::new(0.0..10.0, 0.01))),
+        }
+    }
+}
+
+impl_component_config!(self: Pulse, self.info, [
+    self.texture,
+    self.period,
+    self.width,
+    self.smoothness,
+]);
+
+impl_component!(self: Pulse, *self, "texture");
+
+impl Texture for Pulse {
+    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
+        let pulse_pos = 0.5 * (triangle_sin(self.smoothness.get(), self.period.get(), t as f32) + 1.0) * (num_pixels as f32 - self.width.get());
+        let step1 = [pulse_pos - 0.5, pulse_pos + 0.5];
+        let step2 = [pulse_pos + self.width.get() - 0.5, pulse_pos + self.width.get() + 0.5];
+        self.texture.write().next_frame(t, num_pixels).into_iter()
+            .zip(0..)
+            .map(|(pixel, x)| {
+                let amount = smoothstep(step1[0], step1[1], x as f32) - smoothstep(step2[0], step2[1], x as f32);
+                palette::named::BLACK.into_linear().transparent().mix(pixel, amount)
+            })
+            .collect()
+        // self.texture.write().next_frame(t, num_pixels).into_iter()
+        //     .zip(0..)
+        //     .map(|(pixel, x)| {
+        //         palette::named::BLACK.into_linear().transparent().mix(pixel, 0.5 + 0.5 * triangle_sin(self.smoothness.get(), self.width.get() * 2.0, x as f32))
+        //     })
+        //     .collect()
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(move |app| {
@@ -149,14 +207,17 @@ fn main() {
             // state.pattern_builder.set_layer(get_birds_pattern());
             // state.pattern_builder.set_layer(get_test_pattern_2());
             let group = GroupLayer::new();
-            group.add_pixel_layer(Wave::new(
+            group.add_texture(Wave::new(
                 SolidColor::new(Rgb::from_str("#FF00E1").unwrap().into()),
                 SolidColor::new(Rgb::from_str("#0433FF").unwrap().into())
             ));
-            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 1.0, 2.0);
+            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 6.0, 1.0).into_texture().into_layer();
 
             sparkles.blend_mode().replace(BlendMode::AlphaMask);
-            group.add_pixel_layer(sparkles.into_texture());
+            group.add_texture_layer(sparkles);
+
+            // group.add_texture(Repeater::new(25, Pulse::new(SolidColor::new(palette::named::WHITE.into()))));
+
             state.pattern_builder.set_layer(group);
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())

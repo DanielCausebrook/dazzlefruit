@@ -32,7 +32,6 @@ impl EmptyType for EmptyTextureGenerator {
 #[derive(Clone)]
 pub struct Empty<T: EmptyType> {
     info: ComponentInfo,
-    blend_mode: BlendModeProperty,
     ty: marker::PhantomData<T>,
 }
 
@@ -40,7 +39,6 @@ impl<T: EmptyType> Empty<T> {
     pub fn new() -> Self {
         Self {
             info: ComponentInfo::new("Empty"),
-            blend_mode: BlendModeProperty::default(),
             ty: marker::PhantomData::default(),
         }
     }
@@ -57,10 +55,6 @@ impl TextureGenerator for Empty<EmptyTextureGenerator> {
 }
 
 impl Texture for Empty<EmptyPixelLayer> {
-    fn blend_mode(&self) -> BlendMode {
-        self.blend_mode.get()
-    }
-
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
         vec![palette::named::BLACK.into_linear().transparent(); num_pixels as usize]
     }

@@ -8,3 +8,4 @@ mod mask_layer;
 mod raw_pixels;
 mod solid_color;
 pub mod empty;
+pub mod texture_layer;

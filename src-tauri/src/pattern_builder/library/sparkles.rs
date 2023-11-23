@@ -18,7 +18,6 @@ pub struct SparklesConfig {
     texture: TextureProperty,
     density: NumProperty<f64>,
     decay_rate: NumProperty<f64>,
-    blend_mode: BlendModeProperty,
     persistence_effect_config: PersistenceEffectConfig,
 }
 
@@ -30,12 +29,8 @@ impl SparklesConfig {
             texture: TextureProperty::new(Box::new(texture), PropertyInfo::new("Texture").display_pane(DisplayPane::Tree)),
             density: density.into().set_info(PropertyInfo::new("Density")).set_slider(Some(NumSlider::new(0.0..10.0, 0.1))),
             decay_rate: persistence_effect_config.decay_rate().clone().set_info(PropertyInfo::new("Decay Rate")),
-            blend_mode: BlendModeProperty::default(),
             persistence_effect_config,
         }
-    }
-    pub fn blend_mode(&self) -> &BlendModeProperty {
-        &self.blend_mode
     }
     pub fn into_texture(self) -> Sparkles {
         Sparkles::new(self)
@@ -72,17 +67,17 @@ impl Sparkles {
 impl_component!(self: Sparkles, self.config, "pixel");
 
 impl Texture for Sparkles {
-    fn blend_mode(&self) -> BlendMode {
-        self.config.blend_mode.get()
-    }
-
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
         let delta_t = (t - self.last_t).max(0.0);
         self.last_t = t;
         self.weights.resize(num_pixels as usize, 1.0);
         let texture_frame = self.config.texture.write().next_frame(t, num_pixels);
-        let poisson = Poisson::new(delta_t * self.config.density.get() * num_pixels as f64).unwrap();
-        let num_sparkles = poisson.sample(&mut rand::thread_rng()) + self.num_sparkles_remainder;
+        let num_sparkles = if let Ok(poisson) =
+            Poisson::new(delta_t * self.config.density.get() * num_pixels as f64) {
+            poisson.sample(&mut rand::thread_rng()) + self.num_sparkles_remainder
+        } else {
+            self.num_sparkles_remainder
+        };
         self.num_sparkles_remainder = num_sparkles.fract();
         let num_sparkles = num_sparkles.round() as i64;
         let mut pixels = vec![palette::named::BLACK.into_linear().transparent(); num_pixels as usize];

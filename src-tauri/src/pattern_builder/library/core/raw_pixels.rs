@@ -20,10 +20,6 @@ impl RawPixels {
 impl_component!(self: RawPixels, self.config, "pixel");
 
 impl Texture for RawPixels {
-    fn blend_mode(&self) -> BlendMode {
-        self.config.blend_mode().get()
-    }
-
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
         let mut pixels = self.pixels.clone();
         pixels.resize_with(num_pixels as usize, || palette::named::BLACK.with_alpha(0.0).into_linear());

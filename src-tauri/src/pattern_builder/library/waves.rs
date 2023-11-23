@@ -12,7 +12,6 @@ use crate::pattern_builder::math_functions::skew_sin;
 #[derive(Clone)]
 pub struct Wave {
     info: ComponentInfo,
-    blend_mode: BlendModeProperty,
     fg_texture: TextureProperty,
     bg_texture: TextureProperty,
     wave1_speed: NumProperty<f32>,
@@ -28,15 +27,14 @@ impl Wave {
     pub fn new(fg_texture: impl Texture, bg_texture: impl Texture) -> Self {
         Self {
             info: ComponentInfo::new("Wave"),
-            blend_mode: Default::default(),
             fg_texture: TextureProperty::new(Box::new(fg_texture), PropertyInfo::new("FG").display_pane(DisplayPane::Tree)),
             bg_texture: TextureProperty::new(Box::new(bg_texture), PropertyInfo::new("BG").display_pane(DisplayPane::Tree)),
             wave1_speed: NumProperty::new(2.0, PropertyInfo::new("Wave 1 Speed")).set_slider(Some(NumSlider::new(-30.0..30.0, 0.1))),
-            wave1_scale: NumProperty::new(0.5, PropertyInfo::new("Wave 1 Scale")).set_slider(Some(NumSlider::new(0.0..1.0, 0.01))),
-            wave1_skew: NumProperty::new(0.8, PropertyInfo::new("Wave 1 Skew")).set_slider(Some(NumSlider::new(-1.0..1.0, 0.01))),
+            wave1_scale: NumProperty::new(8.0, PropertyInfo::new("Wave 1 Scale")).set_slider(Some(NumSlider::new(0.0..50.0, 0.5))),
+            wave1_skew: NumProperty::new(0.6, PropertyInfo::new("Wave 1 Skew")).set_slider(Some(NumSlider::new(-1.0..1.0, 0.01))),
             wave2_speed: NumProperty::new(-3.0, PropertyInfo::new("Wave 2 Speed")).set_slider(Some(NumSlider::new(-30.0..30.0, 0.1))),
-            wave2_scale: NumProperty::new(0.35, PropertyInfo::new("Wave 2 Scale")).set_slider(Some(NumSlider::new(0.0..1.0, 0.01))),
-            wave2_skew: NumProperty::new(-0.8, PropertyInfo::new("Wave 2 Skew")).set_slider(Some(NumSlider::new(-1.0..1.0, 0.01))),
+            wave2_scale: NumProperty::new(11.0, PropertyInfo::new("Wave 2 Scale")).set_slider(Some(NumSlider::new(0.0..50.0, 0.5))),
+            wave2_skew: NumProperty::new(-0.5, PropertyInfo::new("Wave 2 Skew")).set_slider(Some(NumSlider::new(-1.0..1.0, 0.01))),
             brightness: NumProperty::new(1.0, PropertyInfo::new("Brightness")).set_slider(Some(NumSlider::new(0.0..1.0, 0.05)))
         }
     }
@@ -57,10 +55,6 @@ impl_component_config!(self: Wave, self.info, [
 impl_component!(self: Wave, *self, "pixel");
 
 impl Texture for Wave {
-    fn blend_mode(&self) -> BlendMode {
-        self.blend_mode.get()
-    }
-
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
         let fg = self.fg_texture.write().next_frame(t, num_pixels);
         let bg = self.bg_texture.write().next_frame(t, num_pixels);
