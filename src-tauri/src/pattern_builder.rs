@@ -42,7 +42,7 @@ impl PatternBuilder {
                 while let Some(pixel_data) = update_receiver.next().await {
                     app_handle.emit_all(
                         "pixel-update",
-                        PixelUpdatePayload { id, pixel_data: pixel_data.into_srgb_components() },
+                        PixelUpdatePayload { id, pixel_data: pixel_data.into_srgba_components() },
                     ).unwrap();
                 }
             }),

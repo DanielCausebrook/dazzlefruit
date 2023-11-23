@@ -1,4 +1,4 @@
-use palette::{LinSrgba, Srgb, WithAlpha};
+use palette::{LinSrgba, Srgb, Srgba, WithAlpha};
 use palette::blend::Compose;
 use serde::{Deserialize, Serialize};
 use rand::distributions::{Distribution, Standard};
@@ -20,6 +20,7 @@ pub type PixelFrame = Vec<Pixel>;
 pub trait Frame {
     fn blend(&self, active: PixelFrame, blend_mode: BlendMode) -> PixelFrame;
     fn into_srgb_components(self) -> Vec<(u8, u8, u8)>;
+    fn into_srgba_components(self) -> Vec<(u8, u8, u8, u8)>;
 }
 
 impl Frame for PixelFrame {
@@ -42,6 +43,11 @@ impl Frame for PixelFrame {
     fn into_srgb_components(self) -> Vec<(u8, u8, u8)> {
         self.into_iter()
             .map(|c| Srgb::<u8>::from_linear(c.premultiply().into()).into_components())
+            .collect()
+    }
+    fn into_srgba_components(self) -> Vec<(u8, u8, u8, u8)> {
+        self.into_iter()
+            .map(|c| Srgba::<u8>::from_linear(c.into()).into_components())
             .collect()
     }
 }

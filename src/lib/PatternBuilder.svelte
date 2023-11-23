@@ -8,7 +8,7 @@
 
     let id = "something";
     let unlistenPixelUpdate;
-    let pixelColors = [];
+    let pixelColors: [string] = [];
     let patternBuilderData: PatternBuilder|null = null;
 
 
@@ -21,7 +21,7 @@
         unlistenPixelUpdate = await listen('pixel-update', (event: Event<{id: number, pixel_data: [[number]]}>) => {
             let colors = [];
             for (const pixel of event.payload.pixel_data) {
-                colors.push(rgbToHex(pixel[0], pixel[1], pixel[2]));
+                colors.push(`rgba(${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${pixel[3]/2.55}%)`);
             }
             pixelColors = colors;
         });
