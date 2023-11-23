@@ -68,8 +68,8 @@ impl Texture for Wave {
         (0..num_pixels).map(|x_int| {
             let x = x_int as f32;
             let t = t + ((x/10.0 + t).sin() / 2.0);
-            let mut wave1_val = skew_sin(self.wave1_scale.get() * x + self.wave1_speed.get() * t, self.wave1_skew.get());
-            let mut wave2_val = skew_sin(self.wave2_scale.get() * x + self.wave2_speed.get() * t, self.wave2_skew.get());
+            let mut wave1_val = skew_sin(self.wave1_skew.get(), 1.0, self.wave1_scale.get() * x + self.wave1_speed.get() * t);
+            let mut wave2_val = skew_sin(self.wave2_skew.get(), 1.0, self.wave2_scale.get() * x + self.wave2_speed.get() * t);
             wave1_val = wave1_val / 2.0 + 0.5;
             wave2_val = wave2_val / 2.0 + 0.5;
             let wave = (wave1_val + wave2_val) / 2.0;
