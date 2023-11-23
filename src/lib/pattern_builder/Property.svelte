@@ -38,13 +38,13 @@
     {#if propConfig.name !== null}
         <div class="header">{propConfig.name}</div>
     {/if}
-    {#if propConfig.property_type === "layerVec" || propConfig.property_type === "pixelBlueprintVec"}
+    {#if propConfig.property_type === "componentVec"}
         <div class="value layer-vec">
             {#each propConfig.value as layerId}
                 <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="Tree" />
             {/each}
         </div>
-    {:else if propConfig.property_type === "pixelLayer" || propConfig.property_type === "textureProducer"}
+    {:else if propConfig.property_type === "component"}
         <div class="value layer">
             <Layer bind:patternBuilderData={patternBuilderData} layerId={propConfig.value} paneType="Tree" />
         </div>

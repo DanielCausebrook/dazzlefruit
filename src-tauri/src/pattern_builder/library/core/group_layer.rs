@@ -95,7 +95,7 @@ type LayerVecProperty = LockedProperty<Vec<Layer>>;
 
 impl Property for LayerVecProperty {
     fn info(&self) -> &PropertyInfo { &self.info() }
-    fn type_id(&self) -> &'static str { "layerVec" }
+    fn type_id(&self) -> &'static str { "componentVec" }
     fn for_each_child_component<'a>(&self, mut func: Box<dyn FnMut(&dyn Component) + 'a>) {
         for layer in self.read().iter() {
             func(layer.as_component_ref());
