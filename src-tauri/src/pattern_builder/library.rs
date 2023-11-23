@@ -5,3 +5,5 @@ pub mod pulsing_blocks;
 pub mod filters;
 pub mod color_range;
 pub mod waves;
+pub mod texture_generators;
+pub mod textures;
