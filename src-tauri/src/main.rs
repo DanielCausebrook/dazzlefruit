@@ -25,8 +25,10 @@ use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 use crate::pattern_builder::component::texture::TextureProperty;
 use crate::pattern_builder::component::texture_generator::{CyclingTextureGenerator, TextureGeneratorProperty};
+use crate::pattern_builder::library::color_range::ColorRange;
 use crate::pattern_builder::library::core::{GroupLayer, SolidColor};
 use crate::pattern_builder::library::core::texture_layer::TextureLayer;
+use crate::pattern_builder::library::filters::persistence_effect::PersistenceEffectConfig;
 use crate::pattern_builder::library::pulsing_blocks::PulsingBlocksConfig;
 use crate::pattern_builder::library::sparkles::SparklesConfig;
 use crate::pattern_builder::library::two_tone::TwoToneConfig;
@@ -208,13 +210,18 @@ fn main() {
             // state.pattern_builder.set_layer(get_test_pattern_2());
             let group = GroupLayer::new();
             group.add_texture(Wave::new(
-                SolidColor::new(Rgb::from_str("#FF00E1").unwrap().into()),
-                SolidColor::new(Rgb::from_str("#0433FF").unwrap().into())
+                ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()),
+                ColorRange::new(Rgb::from_str("#0433FF").unwrap().into())
             ));
-            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 6.0, 1.0).into_texture().into_layer();
-
-            sparkles.blend_mode().replace(BlendMode::AlphaMask);
-            group.add_texture_layer(sparkles);
+            let mask_group = GroupLayer::new();
+            let pulse = Pulse::new(SolidColor::new(palette::named::WHITE.into()));
+            mask_group.add_texture(pulse);
+            mask_group.add_filter(PersistenceEffectConfig::new(2.0).into_filter());
+            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 7.0, 1.8).into_texture();
+            mask_group.add_texture(sparkles);
+            let mask_group_layer = mask_group.into_layer();
+            mask_group_layer.blend_mode().replace(BlendMode::AlphaMask);
+            group.add_texture_layer(mask_group_layer);
 
             // group.add_texture(Repeater::new(25, Pulse::new(SolidColor::new(palette::named::WHITE.into()))));
 

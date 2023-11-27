@@ -29,11 +29,11 @@ impl Wave {
             info: ComponentInfo::new("Wave"),
             fg_texture: TextureProperty::new(Box::new(fg_texture), PropertyInfo::new("FG").display_pane(DisplayPane::Tree)),
             bg_texture: TextureProperty::new(Box::new(bg_texture), PropertyInfo::new("BG").display_pane(DisplayPane::Tree)),
-            wave1_speed: NumProperty::new(2.0, PropertyInfo::new("Wave 1 Speed")).set_slider(Some(NumSlider::new(-30.0..30.0, 0.1))),
-            wave1_scale: NumProperty::new(8.0, PropertyInfo::new("Wave 1 Scale")).set_slider(Some(NumSlider::new(0.0..50.0, 0.5))),
+            wave1_speed: NumProperty::new(9.0, PropertyInfo::new("Wave 1 Speed")).set_slider(Some(NumSlider::new(-30.0..30.0, 0.1))),
+            wave1_scale: NumProperty::new(28.5, PropertyInfo::new("Wave 1 Scale")).set_slider(Some(NumSlider::new(0.0..50.0, 0.5))),
             wave1_skew: NumProperty::new(0.6, PropertyInfo::new("Wave 1 Skew")).set_slider(Some(NumSlider::new(-1.0..1.0, 0.01))),
-            wave2_speed: NumProperty::new(-3.0, PropertyInfo::new("Wave 2 Speed")).set_slider(Some(NumSlider::new(-30.0..30.0, 0.1))),
-            wave2_scale: NumProperty::new(11.0, PropertyInfo::new("Wave 2 Scale")).set_slider(Some(NumSlider::new(0.0..50.0, 0.5))),
+            wave2_speed: NumProperty::new(-11.5, PropertyInfo::new("Wave 2 Speed")).set_slider(Some(NumSlider::new(-30.0..30.0, 0.1))),
+            wave2_scale: NumProperty::new(34.0, PropertyInfo::new("Wave 2 Scale")).set_slider(Some(NumSlider::new(0.0..50.0, 0.5))),
             wave2_skew: NumProperty::new(-0.5, PropertyInfo::new("Wave 2 Skew")).set_slider(Some(NumSlider::new(-1.0..1.0, 0.01))),
             brightness: NumProperty::new(1.0, PropertyInfo::new("Brightness")).set_slider(Some(NumSlider::new(0.0..1.0, 0.05)))
         }
@@ -61,9 +61,9 @@ impl Texture for Wave {
         let t = t as f32;
         (0..num_pixels).map(|x_int| {
             let x = x_int as f32;
-            let t = t + ((x/10.0 + t).sin() / 2.0);
-            let mut wave1_val = skew_sin(self.wave1_skew.get(), 1.0, self.wave1_scale.get() * x + self.wave1_speed.get() * t);
-            let mut wave2_val = skew_sin(self.wave2_skew.get(), 1.0, self.wave2_scale.get() * x + self.wave2_speed.get() * t);
+            // let t = t + ((x/10.0 + t).sin() / 2.0);
+            let mut wave1_val = skew_sin(self.wave1_skew.get(), 1.0, (x + self.wave1_speed.get() * t) / self.wave1_scale.get());
+            let mut wave2_val = skew_sin(self.wave2_skew.get(), 1.0, (x + self.wave2_speed.get() * t) / self.wave2_scale.get());
             wave1_val = wave1_val / 2.0 + 0.5;
             wave2_val = wave2_val / 2.0 + 0.5;
             let wave = (wave1_val + wave2_val) / 2.0;
