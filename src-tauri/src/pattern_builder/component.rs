@@ -1,97 +1,91 @@
+use std::collections::HashMap;
 use dyn_clone::{clone_trait_object, DynClone};
 use rand::random;
-use property::cloning::{OptionStringProperty, StringProperty};
 use crate::pattern_builder::component::data::RandId;
-use crate::pattern_builder::component::property::{Property, PropertyInfo};
+use crate::pattern_builder::component::property::{PropertyInfo};
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
+use crate::pattern_builder::component::property::raw::RawPropCore;
+use crate::pattern_builder::component::property::string::StringProp;
 
 pub mod view_serde;
-pub mod property;
-pub mod basic_config;
 pub mod data;
 pub mod texture;
 pub mod filter;
 pub mod texture_generator;
 mod macros;
-pub mod shared_component;
-
-pub trait Component: Send + Sync + DynClone + 'static {
-    fn config(&self) -> &dyn ComponentConfig;
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig;
-    fn component_type(&self) -> &'static str;
-}
-clone_trait_object!(Component);
-
-impl<T> Component for Box<T> where T: Component + Clone + ?Sized {
-    fn config(&self) -> &dyn ComponentConfig {
-        self.as_ref().config()
-    }
-
-    fn config_mut(&mut self) -> &mut dyn ComponentConfig {
-        self.as_mut().config_mut()
-    }
-
-    fn component_type(&self) -> &'static str {
-        self.as_ref().component_type()
-    }
+// pub mod shared_component;
+pub mod property;
+pub trait Component: Send + Sync + 'static {
+    fn view_properties(&self) -> Vec<PropView>;
+    fn detach(&mut self);
 }
 
-pub trait ComponentConfig: Send + Sync + DynClone + 'static {
-    fn info(&self) -> &ComponentInfo;
-    fn info_mut(&mut self) -> &mut ComponentInfo;
-    fn properties(&self) -> Vec<&dyn Property>;
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property>;
+impl<T> Component for Box<T> where T: Component + ?Sized {
+    fn view_properties(&self) -> Vec<PropView> {
+        self.as_ref().view_properties()
+    }
+
     fn detach(&mut self) {
-        self.info_mut().detach();
-        for property in self.properties_mut() {
-            property.detach();
-        }
+        self.as_mut().detach()
     }
 }
-clone_trait_object!(ComponentConfig);
-impl<T> ComponentConfig for Box<T> where T: ComponentConfig + Clone + ?Sized {
-    fn info(&self) -> &ComponentInfo { self.as_ref().info() }
-    fn info_mut(&mut self) -> &mut ComponentInfo { self.as_mut().info_mut() }
-    fn properties(&self) -> Vec<&dyn Property> { self.as_ref().properties() }
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> { self.as_mut().properties_mut() }
-    fn detach(&mut self) { self.as_mut().detach() }
+
+pub trait Layer: Component + Send + Sync + DynClone + 'static {
+    fn type_str(&self) -> String;
+    fn info(&self) -> &LayerInfo;
+    fn view_data(&self) -> HashMap<String, Box<dyn erased_serde::Serialize + 'static>> {
+        HashMap::new()
+    }
 }
+clone_trait_object!(Layer);
+
+impl<T> Layer for Box<T> where T: Layer + Clone + ?Sized {
+    fn type_str(&self) -> String {
+        self.as_ref().type_str()
+    }
+    fn info(&self) -> &LayerInfo { self.as_ref().info() }
+    fn view_data(&self) -> HashMap<String, Box<dyn erased_serde::Serialize + 'static>> {
+        self.as_ref().view_data()
+    }
+}
+
 
 #[derive(Clone)]
-pub struct ComponentInfo {
+pub struct LayerInfo {
     id: RandId,
-    name: StringProperty,
-    description: OptionStringProperty,
+    name: Prop<String>,
+    description: Prop<Option<String>>,
 }
 
-impl ComponentInfo {
+impl LayerInfo {
     pub fn new(name: &str) -> Self {
         Self {
             id: random(),
-            name: StringProperty::new(name.to_string(), PropertyInfo::unnamed()),
-            description: OptionStringProperty::new(None, PropertyInfo::unnamed()),
+            name: StringProp::new(name.to_string()).into_prop(PropertyInfo::unnamed()),
+            description: RawPropCore::new(None).into_prop(PropertyInfo::unnamed()),
         }
     }
 
-    pub fn description(self, value: Option<&str>) -> Self {
-        self.description.replace(value.map(|s| s.to_string()));
+    pub fn set_description(self, value: &str) -> Self {
+        self.description.try_replace_value(Some(value.to_string())).unwrap();
         self
     }
 
-    pub fn get_id(&self) -> RandId {
+    pub fn id(&self) -> RandId {
         self.id
     }
 
-    pub fn get_name_prop(&self) -> &StringProperty {
+    pub fn name(&self) -> &Prop<String> {
         &self.name
     }
 
-    pub fn get_description_prop(&self) -> &OptionStringProperty {
+    pub fn description(&self) -> &Prop<Option<String>> {
         &self.description
     }
 
     pub fn detach(&mut self) {
         self.id = random();
-        self.name.shallow_detach();
-        self.description.shallow_detach();
+        self.name = self.name.fork();
+        self.description = self.description.fork();
     }
 }

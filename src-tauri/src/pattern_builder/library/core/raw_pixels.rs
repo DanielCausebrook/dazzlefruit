@@ -1,23 +1,31 @@
 use palette::WithAlpha;
 
-use crate::impl_component;
-use crate::pattern_builder::component::basic_config::BasicPixelLayerConfig;
-use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
+use crate::{fork_properties, view_properties};
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::data::{FrameSize, PixelFrame};
+use crate::pattern_builder::component::property::{PropView};
 use crate::pattern_builder::component::texture::Texture;
 
 #[derive(Clone)]
 pub struct RawPixels {
-    config: BasicPixelLayerConfig,
     pixels: PixelFrame,
 }
 
 impl RawPixels {
     pub fn new(pixels: PixelFrame) -> Self {
-        Self { config: BasicPixelLayerConfig::new("Raw Pixels", None), pixels }
+        Self { pixels }
     }
 }
 
-impl_component!(self: RawPixels, self.config, "pixel");
+impl Component for RawPixels {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!()
+    }
+
+    fn detach(&mut self) {
+        fork_properties!();
+    }
+}
 
 impl Texture for RawPixels {
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {

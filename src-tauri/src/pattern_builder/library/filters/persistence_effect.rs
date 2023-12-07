@@ -1,24 +1,22 @@
 use palette::WithAlpha;
 
-use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::ComponentInfo;
+use crate::{fork_properties, view_properties};
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{BlendMode, Frame, PixelFrame};
 use crate::pattern_builder::component::filter::Filter;
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
+use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
 
 #[derive(Clone)]
 pub struct PersistenceEffectConfig {
-    info: ComponentInfo,
-    decay_rate: NumProperty<f64>,
+    decay_rate: Prop<f64>,
 }
 
 impl PersistenceEffectConfig {
-    pub fn new(decay_rate: impl Into<NumProperty<f64>>) -> Self {
+    pub fn new(decay_rate: f64) -> Self {
         Self {
-            info: ComponentInfo::new("Persistence Effect"),
-            decay_rate: decay_rate.into().set_info(PropertyInfo::new("Decay Rate"))
-                .set_slider(Some(NumSlider::new(0.0..20.0, 0.1, ))),
+            decay_rate: NumPropCore::new_slider(decay_rate, 0.0..20.0, 0.1).into_prop(PropertyInfo::new("Decay Rate")),
         }
     }
 
@@ -26,14 +24,10 @@ impl PersistenceEffectConfig {
         PersistenceEffect::new(self)
     }
 
-    pub fn decay_rate(&self) -> NumProperty<f64> {
-        self.decay_rate.clone()
+    pub fn decay_rate(&self) -> &Prop<f64> {
+        &self.decay_rate
     }
 }
-
-impl_component_config!(self: PersistenceEffectConfig, self.info, [
-    self.decay_rate
-]);
 
 #[derive(Clone)]
 pub struct PersistenceEffect {
@@ -52,7 +46,19 @@ impl PersistenceEffect {
     }
 }
 
-impl_component!(self: PersistenceEffect, self.config, "filter");
+impl Component for PersistenceEffect {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties![
+            self.config.decay_rate,
+        ]
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.config.decay_rate,
+        );
+    }
+}
 
 impl Filter for PersistenceEffect {
     fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {
@@ -62,7 +68,7 @@ impl Filter for PersistenceEffect {
         self.last_t = t;
 
         for pixel in self.pixel_data.iter_mut() {
-            pixel.alpha = (pixel.alpha - (self.config.decay_rate.get() * delta_t) as f32).clamp(0.0, 1.0)
+            pixel.alpha = (pixel.alpha - (*self.config.decay_rate.read() * delta_t) as f32).clamp(0.0, 1.0)
         }
 
         self.pixel_data = active.blend(self.pixel_data.clone(), BlendMode::Normal);

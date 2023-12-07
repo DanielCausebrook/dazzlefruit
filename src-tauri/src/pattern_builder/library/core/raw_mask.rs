@@ -1,25 +1,33 @@
 use itertools::Itertools;
 use palette::WithAlpha;
-use crate::impl_component;
+use crate::{fork_properties, view_properties};
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::filter::Filter;
-use crate::pattern_builder::component::basic_config::BasicConfig;
 use crate::pattern_builder::component::data::PixelFrame;
+use crate::pattern_builder::component::property::PropView;
 
 #[derive(Clone)]
-pub struct MaskLayer {
-    config: BasicConfig,
+pub struct RawMask {
     mask: Vec<f32>,
 }
 
-impl MaskLayer {
+impl RawMask {
     pub fn new(mask: Vec<f32>) -> Self {
-        MaskLayer{ config: BasicConfig::new("Mask", None), mask }
+        RawMask { mask }
     }
 }
 
-impl_component!(self: MaskLayer, self.config, "filter");
+impl Component for RawMask {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!()
+    }
 
-impl Filter for MaskLayer {
+    fn detach(&mut self) {
+        fork_properties!();
+    }
+}
+
+impl Filter for RawMask {
     fn next_frame(&mut self, _t: f64, active: PixelFrame) -> PixelFrame {
         self.mask
             .iter()

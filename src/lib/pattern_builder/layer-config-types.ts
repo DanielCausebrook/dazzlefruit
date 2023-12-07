@@ -1,55 +1,80 @@
 type RandId = string;
 
 type BlendMode = 'Normal'|'AlphaMask';
+type ComponentTypeId = 'texture'|'filter'|'texture-generator';
 
 type NumRange = {
     start: number,
     end: number,
 }
 
-type LayerConfig = {
+type AnyComponent = Component<TextureComponentMetadata> |
+    Component<FilterComponentMetadata> |
+    Component<TextureGeneratorComponentMetadata>;
+type Component<T extends ComponentMetadata> = {
     id: RandId,
-    layer_type: 'pixel'|'filter'|'group'|'producer',
-    name: SimpleProperty<string>,
-    description: SimpleProperty<string|null>,
-    blend_mode: SimpleProperty<BlendMode>,
-    properties: [Property],
+    type: ComponentTypeId,
+    name: PropView<UnsupportedPropMetadata>,
+    description: PropView<UnsupportedPropMetadata>,
+    data: T,
+    properties: [AnyPropView],
 }
-
-type Property = SimpleProperty<string|(string|null)|boolean|BlendMode|[number]|RandId|[RandId]>|NumProperty|OptionNumProperty;
-type PropertyType = 'string'|'optionString'|'bool'|'blendMode'|'color'|'pixelLayer'|'layerVec'|'num'|'optionNum'|'pixelBlueprintVec';
-type PaneType = 'Tree'|'Config'|'TreeAndConfig';
-
-type SimpleProperty<T> = {
-    id: RandId,
-    name: string,
-    description: string|null,
-    display_pane: PaneType,
-    property_type: PropertyType,
-    value: T,
+type ComponentMetadata = Object;
+type TextureComponentMetadata = {
+    blend_mode: BlendMode,
+    opacity: number,
 }
+type FilterComponentMetadata = {};
+type TextureGeneratorComponentMetadata = {};
 
-type NumProperty = {
+type DisplayPane = 'Tree'|'Config'|'TreeAndConfig';
+
+type AnyPropView =
+    PropView<NumPropMetadata> |
+    PropView<ColorPropMetadata> |
+    PropView<ComponentPropMetadata> |
+    PropView<ComponentVecPropMetadata> |
+    PropView<UnsupportedPropMetadata>;
+type PropView<T extends PropMetadata> = {
     id: RandId,
-    name: string,
+    type: T['type'],
+    name: string|null,
     description: string|null,
-    display_pane: PaneType,
-    property_type: PropertyType,
+    display_pane: DisplayPane,
+    value: T['value'],
+    data: T['data'],
+}
+type PropMetadata = {
+    type: string,
+    value: any,
+    data: Object,
+}
+type NumPropMetadata = {
+    type: 'num',
     value: number,
-    slider: {
-        range: NumRange,
-        step: number,
-    }|null,
+    data: {
+        slider: null | { range: NumRange, step: number },
+    }
+};
+type ColorPropMetadata = {
+    type: 'color',
+    value: number[],
+    data: {},
+}
+type ComponentPropMetadata = {
+    type: 'component',
+    value: RandId,
+    data: {},
+};
+type ComponentVecPropMetadata = {
+    type: 'component-vec',
+    value: RandId[],
+    data: {},
+};
+type UnsupportedPropMetadata = {
+    type: 'computed'|'raw',
+    value: null,
+    data: {},
 }
 
-type OptionNumProperty = {
-    id: RandId,
-    name: string,
-    description: string|null,
-    display_pane: PaneType,
-    property_type: PropertyType,
-    value: number|null,
-    range: NumRange,
-    step: number,
-}
 

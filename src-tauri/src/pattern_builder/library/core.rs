@@ -1,11 +1,9 @@
-pub use group_layer::GroupLayer;
-pub use mask_layer::MaskLayer;
+pub use group::Group;
 pub use raw_pixels::RawPixels;
 pub use solid_color::SolidColor;
 pub mod animation_runner;
-mod group_layer;
-mod mask_layer;
+mod group;
+mod raw_mask;
 mod raw_pixels;
 mod solid_color;
 pub mod empty;
-pub mod texture_layer;

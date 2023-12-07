@@ -2,7 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 #![feature(iter_next_chunk)]
-#![feature(trait_upcasting)]
 #![feature(associated_type_defaults)]
 
 extern crate core;
@@ -13,24 +12,28 @@ use nalgebra_glm::smoothstep;
 use palette::{Lighten, Mix, WithAlpha};
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
-use tokio::sync::RwLock;
-use tokio::sync::RwLockWriteGuard;
+use tokio::sync::{RwLock, RwLockWriteGuard};
 
 use pattern_builder::component::texture::Texture;
 
 use crate::neopixel_controller::NeopixelController;
-use crate::pattern_builder::component::{Component, ComponentInfo};
+use crate::pattern_builder::component::{Component, LayerInfo};
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::filter::Filter;
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
+use crate::pattern_builder::component::property::component::{TexturePropCore};
+use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
-use crate::pattern_builder::component::texture::TextureProperty;
-use crate::pattern_builder::component::texture_generator::{CyclingTextureGenerator, TextureGeneratorProperty};
+use crate::pattern_builder::component::property::raw::RawPropCore;
+use crate::pattern_builder::component::texture::TextureLayer;
+use crate::pattern_builder::component::texture_generator::TextureGenerator;
 use crate::pattern_builder::library::color_range::ColorRange;
-use crate::pattern_builder::library::core::{GroupLayer, SolidColor};
-use crate::pattern_builder::library::core::texture_layer::TextureLayer;
+use crate::pattern_builder::library::core::{Group, SolidColor};
+use crate::pattern_builder::library::core::empty::{Empty};
 use crate::pattern_builder::library::filters::persistence_effect::PersistenceEffectConfig;
 use crate::pattern_builder::library::pulsing_blocks::PulsingBlocksConfig;
 use crate::pattern_builder::library::sparkles::SparklesConfig;
+use crate::pattern_builder::library::texture_generators::cyclic::CyclicTextureGenerator;
 use crate::pattern_builder::library::two_tone::TwoToneConfig;
 use crate::pattern_builder::library::waves::Wave;
 use crate::pattern_builder::math_functions::triangle_sin;
@@ -42,7 +45,6 @@ mod pico_connection;
 mod neopixel_controller;
 mod tauri_events;
 mod pattern_builder;
-mod watch_guard;
 
 pub struct AppState {
     connection: Option<PicoConnectionHandle>,
@@ -70,7 +72,7 @@ async fn set_color(color_str: String, tauri_state: tauri::State<'_, LockedAppSta
     let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
     let color = Rgb::from_str(color_str.as_str())
         .map_err(|e| e.to_string())?;
-    state.pattern_builder.set_layer(SolidColor::new(color.into()));
+    state.pattern_builder.set_texture(SolidColor::new(color.into()).into_layer(LayerInfo::new("Color")));
     Ok(())
 }
 
@@ -82,33 +84,48 @@ fn get_birds_pattern() -> Box<dyn Texture> {
     // let bird_mask = MaskLayer::new(mask_vec);
 
     let colors = TwoToneConfig::new(
-        (SolidColor::new(palette::named::BLUE.into()), SolidColor::new(palette::named::PURPLE.into())),
+        (
+            SolidColor::new(palette::named::BLUE.into()).into_layer(LayerInfo::new("Color 1")),
+            SolidColor::new(palette::named::PURPLE.into()).into_layer(LayerInfo::new("Color 2"))
+        ),
         0.8,
         1.0
-    ).init_gradient_width(0.3);
+    );
+    colors.gradient_width().try_replace_value(0.3).unwrap();
 
-    let sparkle_color_group = GroupLayer::new();
-    let sparkle_mask = TextureLayer::new(TwoToneConfig::new(
-        (SolidColor::new(palette::named::BLACK.into()), SolidColor::new(palette::named::BLACK.transparent().into())),
+    let sparkle_color_group = Group::new();
+    let sparkle_mask = TwoToneConfig::new(
+        (
+            SolidColor::new(palette::named::BLACK.into()).into_layer(LayerInfo::new("Opaque")),
+            SolidColor::new(palette::named::BLACK.transparent().into()).into_layer(LayerInfo::new("Transparent"))
+        ),
         0.3,
         0.1,
-    ).init_noise_velocity(5.0).init_gradient_offset(-0.2).into_texture());
-    sparkle_mask.blend_mode().replace(BlendMode::AlphaMask);
+    );
+    sparkle_mask.noise_travel_speed().try_replace_value(5.0).unwrap();
+    sparkle_mask.gradient_offset().try_replace_value(-0.2).unwrap();
+    let sparkle_mask_component = sparkle_mask.into_texture().into_layer(LayerInfo::new("Sparkle Mask"));
+    sparkle_mask_component.blend_mode().try_replace_value(BlendMode::AlphaMask).unwrap();
     let sparkle_colors = TwoToneConfig::new(
         (
-            SolidColor::new(palette::named::BLUE.into_linear().lighten(0.3).into()),
-            SolidColor::new(palette::named::PURPLE.into_linear().lighten(0.3).into())
+            SolidColor::new(palette::named::BLUE.into_linear().lighten(0.3).into()).into_layer(LayerInfo::new("Color")),
+            SolidColor::new(palette::named::PURPLE.into_linear().lighten(0.3).into()).into_layer(LayerInfo::new("Color"))
         ),
         2.0,
         10.0
-    ).init_gradient_width(0.3);
-    sparkle_color_group.add_texture(sparkle_colors.into_texture());
-    sparkle_color_group.add_texture_layer(sparkle_mask);
-    let sparkles = SparklesConfig::new(sparkle_color_group, 1.0, 1.0);
+    );
+    sparkle_colors.gradient_width().try_replace_value(0.3).unwrap();
+    sparkle_color_group.add_texture(sparkle_colors.into_texture().into_layer(LayerInfo::new("Colours")));
+    sparkle_color_group.add_texture(sparkle_mask_component);
+    let sparkles = SparklesConfig::new(
+        sparkle_color_group.into_layer(LayerInfo::new("Sparkle Color")),
+        1.0,
+        1.0
+    );
 
-    let group = GroupLayer::new();
-    group.add_texture(colors.into_texture());
-    group.add_texture(sparkles.into_texture());
+    let group = Group::new();
+    group.add_texture(colors.into_texture().into_layer(LayerInfo::new("Colors")));
+    group.add_texture(sparkles.into_texture().into_layer(LayerInfo::new("Sparkles")));
     // group.add_filter_layer(PersistenceEffectConfig::new(2.0).create());
     // group.add_filter_layer(Box::new(bird_mask));
 
@@ -122,65 +139,81 @@ fn get_test_pattern() -> Box<dyn Texture> {
         palette::named::CYAN,
     ];
     let transparent = palette::named::BLACK.transparent().into();
-    let group = GroupLayer::new();
+    let group = Group::new();
     for color in colors {
         let tt = TwoToneConfig::new(
-            (SolidColor::new(transparent), SolidColor::new(color.into())),
+            (
+                SolidColor::new(transparent).into_layer(LayerInfo::new("Transparent")),
+                SolidColor::new(color.into()).into_layer(LayerInfo::new("Color"))
+            ),
             1.0,
             0.1
-        )
-            .init_gradient_offset(0.15)
-            .init_gradient_width(0.15);
-        group.add_texture(tt.into_texture());
+        );
+        tt.gradient_offset().try_replace_value(0.15).unwrap();
+        tt.gradient_width().try_replace_value(0.15).unwrap();
+        group.add_texture(tt.into_texture().into_layer(LayerInfo::new("Two Tone")));
     }
     Box::new(group)
 }
 
 fn get_test_pattern_2() -> Box<dyn Texture> {
-    let producer = CyclingTextureGenerator::new(vec![
-        Box::new(SolidColor::new(palette::named::BLUE.into())),
-        Box::new(SolidColor::new(palette::named::PURPLE.into())),
-        Box::new(SolidColor::new(palette::named::RED.into())),
-    ]);
-    let pulsing_blocks = PulsingBlocksConfig::new(TextureGeneratorProperty::new(Box::new(producer), PropertyInfo::unnamed()));
+    let producer = CyclicTextureGenerator::new(
+        vec![
+            SolidColor::new(palette::named::BLUE.into()),
+            SolidColor::new(palette::named::PURPLE.into()),
+            SolidColor::new(palette::named::RED.into()),
+        ].into_iter()
+            .map(|color| color.into_layer(LayerInfo::new("Color")))
+            .collect()
+    );
+    let pulsing_blocks = PulsingBlocksConfig::new(producer.into_layer(LayerInfo::new("Textures")));
     Box::new(pulsing_blocks.into_texture())
 }
 
 #[derive(Clone)]
 pub struct Pulse {
-    info: ComponentInfo,
-    texture: TextureProperty,
-    period: NumProperty<f32>,
-    width: NumProperty<f32>,
-    smoothness: NumProperty<f32>,
+    texture: Prop<TextureLayer>,
+    period: Prop<f32>,
+    width: Prop<f32>,
+    smoothness: Prop<f32>,
 }
 
 impl Pulse {
-    pub fn new(texture: impl Texture) -> Self {
+    pub fn new(texture: TextureLayer) -> Self {
         Self {
-            info: ComponentInfo::new("Pulse"),
-            texture: TextureProperty::new(Box::new(texture), PropertyInfo::new("Texture").display_pane(DisplayPane::Tree)),
-            period: NumProperty::new(2.0, PropertyInfo::new("Period")).set_slider(Some(NumSlider::new(0.0..10.0, 0.1))),
-            width: NumProperty::new(5.0, PropertyInfo::new("Width")).set_slider(Some(NumSlider::new(1.0..20.0, 0.2))),
-            smoothness: NumProperty::new(10.0, PropertyInfo::new("Smoothness")).set_slider(Some(NumSlider::new(0.0..10.0, 0.01))),
+            texture: TexturePropCore::new(texture).into_prop(PropertyInfo::new("Texture").set_display_pane(DisplayPane::Tree)),
+            period: NumPropCore::new_slider(2.0, 0.0..10.0, 0.1).into_prop(PropertyInfo::new("Period")),
+            width: NumPropCore::new_slider(5.0, 1.0..20.0, 0.2).into_prop(PropertyInfo::new("Width")),
+            smoothness: NumPropCore::new_slider(10.0, 0.0..10.0, 0.01).into_prop(PropertyInfo::new("Smoothness")),
         }
     }
 }
 
-impl_component_config!(self: Pulse, self.info, [
-    self.texture,
-    self.period,
-    self.width,
-    self.smoothness,
-]);
+impl Component for Pulse {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties![
+            self.texture,
+            self.period,
+            self.width,
+            self.smoothness,
+        ]
+    }
 
-impl_component!(self: Pulse, *self, "texture");
+    fn detach(&mut self) {
+        fork_properties!(
+            self.texture,
+            self.period,
+            self.width,
+            self.smoothness,
+        );
+    }
+}
 
 impl Texture for Pulse {
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
-        let pulse_pos = 0.5 * (triangle_sin(self.smoothness.get(), self.period.get(), t as f32) + 1.0) * (num_pixels as f32 - self.width.get());
+        let pulse_pos = 0.5 * (triangle_sin(*self.smoothness.read(), *self.period.read(), t as f32) + 1.0) * (num_pixels as f32 - *self.width.read());
         let step1 = [pulse_pos - 0.5, pulse_pos + 0.5];
-        let step2 = [pulse_pos + self.width.get() - 0.5, pulse_pos + self.width.get() + 0.5];
+        let step2 = [pulse_pos + *self.width.read() - 0.5, pulse_pos + *self.width.read() + 0.5];
         self.texture.write().next_frame(t, num_pixels).into_iter()
             .zip(0..)
             .map(|(pixel, x)| {
@@ -198,6 +231,8 @@ impl Texture for Pulse {
 }
 
 fn main() {
+    // 10.0.1.43
+
     tauri::Builder::default()
         .setup(move |app| {
             let mut state = AppState {
@@ -208,24 +243,29 @@ fn main() {
             };
             // state.pattern_builder.set_layer(get_birds_pattern());
             // state.pattern_builder.set_layer(get_test_pattern_2());
-            let group = GroupLayer::new();
+            let group = Group::new();
             group.add_texture(Wave::new(
-                ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()),
-                ColorRange::new(Rgb::from_str("#0433FF").unwrap().into())
-            ));
-            let mask_group = GroupLayer::new();
-            let pulse = Pulse::new(SolidColor::new(palette::named::WHITE.into()));
-            mask_group.add_texture(pulse);
-            mask_group.add_filter(PersistenceEffectConfig::new(2.0).into_filter());
-            let sparkles = SparklesConfig::new(SolidColor::new(palette::named::WHITE.into()), 7.0, 1.8).into_texture();
-            mask_group.add_texture(sparkles);
-            let mask_group_layer = mask_group.into_layer();
-            mask_group_layer.blend_mode().replace(BlendMode::AlphaMask);
-            group.add_texture_layer(mask_group_layer);
+                ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer(LayerInfo::new("Color")),
+                ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer(LayerInfo::new("Color"))
+            ).into_layer(LayerInfo::new("Wave")));
+            let mask_group = Group::new();
+            let pulse = Pulse::new(Empty::new_texture_component());
+            pulse.texture.replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
+            // let pulse = Pulse::new(SolidColor::new(palette::named::WHITE.into()).into_component(ComponentInfo::new("Pulse Color")));
+            mask_group.add_texture(pulse.into_layer(LayerInfo::new("Pulse")));
+            mask_group.add_filter(PersistenceEffectConfig::new(2.0).into_filter().into_layer(LayerInfo::new("Persistence Effect")));
+            
+            let sparkles = SparklesConfig::default();
+            sparkles.texture().replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
+            
+            mask_group.add_texture(sparkles.into_texture().into_layer(LayerInfo::new("Sparkles")));
+            let mask_group_layer = mask_group.into_layer(LayerInfo::new("Mask"));
+            mask_group_layer.blend_mode().try_replace_value(BlendMode::AlphaMask).unwrap();
+            group.add_texture(mask_group_layer);
 
             // group.add_texture(Repeater::new(25, Pulse::new(SolidColor::new(palette::named::WHITE.into()))));
 
-            state.pattern_builder.set_layer(group);
+            state.pattern_builder.set_texture(group.into_layer(LayerInfo::new("Group")));
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())
         })

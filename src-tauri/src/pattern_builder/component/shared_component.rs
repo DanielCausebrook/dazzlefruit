@@ -1,8 +1,6 @@
 use std::sync::Arc;
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-use crate::{impl_component};
-use crate::pattern_builder::component::{Component, ComponentConfig, ComponentInfo};
-use crate::pattern_builder::component::property::Property;
+use crate::pattern_builder::component::{Component, ComponentInfo};
 
 #[derive(Clone)]
 pub struct SharedComponent<T: Component + Clone> {
@@ -28,29 +26,5 @@ impl<T: Component + Clone> SharedComponent<T> {
 
     pub fn clone_inner(&self) -> T {
         self.component.read().clone()
-    }
-}
-
-impl_component!(<T: Component + Clone> self: SharedComponent<T>, *self, self.component.read().component_type());
-
-impl<T: Component + Clone> ComponentConfig for SharedComponent<T> {
-    fn info(&self) -> &ComponentInfo {
-        &self.info
-    }
-
-    fn info_mut(&mut self) -> &mut ComponentInfo {
-        &mut self.info
-    }
-
-    fn properties(&self) -> Vec<&dyn Property> {
-        vec![]
-    }
-
-    fn properties_mut(&mut self) -> Vec<&mut dyn Property> {
-        vec![]
-    }
-
-    fn detach(&mut self) {
-        self.info.detach()
     }
 }

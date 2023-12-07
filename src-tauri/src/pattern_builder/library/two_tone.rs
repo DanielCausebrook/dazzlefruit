@@ -3,45 +3,37 @@ use noise::{NoiseFn, OpenSimplex};
 use palette::Mix;
 use rand::random;
 
-use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
-use crate::pattern_builder::component::property::{Property, PropertyInfo};
-use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
-use crate::pattern_builder::component::texture::{Texture, TextureProperty};
+use crate::{fork_properties, view_properties};
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::property::{PropertyInfo};
+use crate::pattern_builder::component::property::component::{TexturePropCore};
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
+use crate::pattern_builder::component::property::num::NumPropCore;
+use crate::pattern_builder::component::texture::{Texture, TextureLayer};
 
 #[derive(Clone)]
 pub struct TwoToneConfig {
-    info: ComponentInfo,
-    textures: (TextureProperty, TextureProperty),
-    noise_flow_speed: NumProperty<f64>,
-    gradient_width: NumProperty<f64>,
-    gradient_offset: NumProperty<f64>,
-    noise_scaling: NumProperty<f64>,
-    noise_travel_speed: NumProperty<f64>,
+    textures: (Prop<TextureLayer>, Prop<TextureLayer>),
+    noise_flow_speed: Prop<f64>,
+    gradient_width: Prop<f64>,
+    gradient_offset: Prop<f64>,
+    noise_scaling: Prop<f64>,
+    noise_travel_speed: Prop<f64>,
 }
 
 impl TwoToneConfig {
-    pub fn new(colors: (impl Texture, impl Texture), flow_speed: impl Into<NumProperty<f64>>, noise_scaling: impl Into<NumProperty<f64>>) -> Self {
+    pub fn new(colors: (TextureLayer, TextureLayer), flow_speed: f64, noise_scaling: f64) -> Self {
         Self {
-            info: ComponentInfo::new("TwoTone"),
             textures: (
-                TextureProperty::new(Box::new(colors.0), PropertyInfo::new("Texture 1").display_pane(DisplayPane::Tree)),
-                TextureProperty::new(Box::new(colors.1), PropertyInfo::new("Texture 2").display_pane(DisplayPane::Tree))
+                TexturePropCore::new(colors.0).into_prop(PropertyInfo::new("Texture 1").set_display_pane(DisplayPane::Tree)),
+                TexturePropCore::new(colors.1).into_prop(PropertyInfo::new("Texture 2").set_display_pane(DisplayPane::Tree))
             ),
-            noise_flow_speed: flow_speed.into()
-                .set_info(PropertyInfo::new("Noise Flow Speed"))
-                .set_slider(Some(NumSlider::new(0.0..20.0, 0.1))),
-            noise_scaling: noise_scaling.into()
-                .set_info(PropertyInfo::new("Noise Scaling"))
-                .set_slider(Some(NumSlider::new(0.0..1.0, 0.02))),
-            noise_travel_speed: NumProperty::new(0.0, PropertyInfo::new("Noise Travel Speed"))
-                .set_slider(Some(NumSlider::new(-100.0..100.0, 0.25))),
-            gradient_width: NumProperty::new(0.2, PropertyInfo::new("Gradient Width"))
-                .set_slider(Some(NumSlider::new(0.0..1.0, 0.01))),
-            gradient_offset: NumProperty::new(0.0, PropertyInfo::new("Gradient Offset"))
-                .set_slider(Some(NumSlider::new(-1.0..1.0, 0.01, ))),
+            noise_flow_speed: NumPropCore::new_slider(flow_speed, 0.0..20.0, 0.1).into_prop(PropertyInfo::new("Noise Flow Speed")),
+            noise_scaling: NumPropCore::new_slider(noise_scaling, 0.0..1.0, 0.02).into_prop(PropertyInfo::new("Noise Scaling")),
+            noise_travel_speed: NumPropCore::new_slider(0.0, -100.0..100.0, 0.25).into_prop(PropertyInfo::new("Noise Travel Speed")),
+            gradient_width: NumPropCore::new_slider(0.2, 0.0..1.0, 0.01).into_prop(PropertyInfo::new("Gradient Width")),
+            gradient_offset: NumPropCore::new_slider(0.0, -1.0..1.0, 0.01).into_prop(PropertyInfo::new("Gradient Offset")),
         }
     }
 
@@ -49,49 +41,26 @@ impl TwoToneConfig {
         TwoTone::new(random(), self)
     }
 
-    pub fn init_gradient_width(mut self, value: impl Into<NumProperty<f64>>) -> Self {
-        self.gradient_width = value.into()
-            .set_info(self.gradient_width.info().clone())
-            .set_slider(self.gradient_width.get_slider().clone());
-        self
-    }
-
-    pub fn init_gradient_offset(mut self, value: impl Into<NumProperty<f64>>) -> Self {
-        self.gradient_offset = value.into()
-            .set_info(self.gradient_offset.info().clone())
-            .set_slider(self.gradient_offset.get_slider().clone());
-        self
-    }
-
-    pub fn init_noise_velocity(mut self, value: impl Into<NumProperty<f64>>) -> Self {
-        self.noise_travel_speed = value.into()
-            .set_info(self.noise_travel_speed.info().clone())
-            .set_slider(self.noise_travel_speed.get_slider().clone());
-        self
-    }
-
-    pub fn noise_flow_speed(&self) -> &NumProperty<f64> {
+    pub fn noise_flow_speed(&self) -> &Prop<f64> {
         &self.noise_flow_speed
     }
-
-    pub fn gradient_width(&self) -> &NumProperty<f64> {
+    
+    pub fn noise_scaling(&self) -> &Prop<f64> {
+        &self.noise_scaling
+    }
+    
+    pub fn noise_travel_speed(&self) -> &Prop<f64> {
+        &self.noise_travel_speed
+    }
+    
+    pub fn gradient_width(&self) -> &Prop<f64> {
         &self.gradient_width
     }
-
-    pub fn gradient_offset(&self) -> &NumProperty<f64> {
+    
+    pub fn gradient_offset(&self) -> &Prop<f64> {
         &self.gradient_offset
     }
 }
-
-impl_component_config!(self: TwoToneConfig, self.info, [
-    self.textures.0,
-    self.textures.1,
-    self.noise_flow_speed,
-    self.noise_scaling,
-    self.noise_travel_speed,
-    self.gradient_width,
-    self.gradient_offset,
-]);
 
 #[derive(Clone)]
 pub struct TwoTone {
@@ -107,12 +76,32 @@ impl TwoTone {
         }
     }
 
-    pub fn get_config(&self) -> &TwoToneConfig {
+    pub fn config(&self) -> &TwoToneConfig {
         &self.config
     }
 }
 
-impl_component!(self: TwoTone, self.config, "pixel");
+impl Component for TwoTone {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.config.noise_flow_speed,
+            self.config.noise_scaling,
+            self.config.noise_travel_speed,
+            self.config.gradient_width,
+            self.config.gradient_offset,
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.config.noise_flow_speed,
+            self.config.noise_scaling,
+            self.config.noise_travel_speed,
+            self.config.gradient_width,
+            self.config.gradient_offset,
+        );
+    }
+}
 
 impl Texture for TwoTone {
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
@@ -121,15 +110,15 @@ impl Texture for TwoTone {
         let mut pixels = vec![];
         for x in 0..num_pixels {
             let noise = self.simplex_noise.get([
-                t * self.config.noise_flow_speed.get(),
-                (x as f64 - t * self.config.noise_travel_speed.get()) * self.config.noise_scaling.get()
+                t * *self.config.noise_flow_speed.read(),
+                (x as f64 - t * *self.config.noise_travel_speed.read()) * *self.config.noise_scaling.read()
             ]) as f32;
             pixels.push(
                 colors0[x as usize].mix(
                     colors1[x as usize],
                     smoothstep(
-                        (self.config.gradient_offset.get() - self.config.gradient_width.get()) as f32,
-                        (self.config.gradient_offset.get() + self.config.gradient_width.get()) as f32,
+                        (*self.config.gradient_offset.read() - *self.config.gradient_width.read()) as f32,
+                        (*self.config.gradient_offset.read() + *self.config.gradient_width.read()) as f32,
                         noise
                     )
                 )

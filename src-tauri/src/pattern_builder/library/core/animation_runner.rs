@@ -1,42 +1,37 @@
 use std::time::{Duration, Instant};
 
 use palette::WithAlpha;
-use parking_lot::RwLock;
 use tauri::async_runtime::{JoinHandle, spawn};
-use tokio::select;
 use tokio::sync::watch;
 use tokio::time::{interval, MissedTickBehavior};
 
-use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
+use crate::{fork_properties, view_properties};
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
+use crate::pattern_builder::component::property::component::TexturePropCore;
+use crate::pattern_builder::component::property::num::NumPropCore;
+use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::property::cloning::{BlendModeProperty, BoolProperty};
-use crate::pattern_builder::component::property::num::{NumProperty, NumSlider};
-use crate::pattern_builder::component::texture::{Texture, TextureProperty};
-use crate::watch_guard::RWLockWatchReceiver;
+use crate::pattern_builder::component::texture::{Texture, TextureLayer};
 
 const FPS: f32 = 30.0;
 
 #[derive(Clone)]
 pub struct AnimationRunnerConfig {
-    info: ComponentInfo,
-    layer: TextureProperty,
-    num_pixels: NumProperty<FrameSize>,
-    speed: NumProperty<f64>,
-    running: BoolProperty,
+    layer: Prop<TextureLayer>,
+    num_pixels: Prop<FrameSize>,
+    speed: Prop<f64>,
+    running: Prop<bool>,
 }
 
 impl AnimationRunnerConfig {
-    pub fn new(layer: impl Texture, num_pixels: FrameSize) -> Self {
+    pub fn new(layer: TextureLayer, num_pixels: FrameSize) -> Self {
         Self {
-            info: ComponentInfo::new("Animation Runner"),
-            layer: TextureProperty::new(Box::new(layer), PropertyInfo::unnamed().display_pane(DisplayPane::Tree)),
-            num_pixels: NumProperty::new(num_pixels, PropertyInfo::new("Number of Pixels"))
-                .set_slider(Some(NumSlider::new(0..500, 10))),
-            speed: NumProperty::new(1.0, PropertyInfo::new("Speed"))
-                .set_slider(Some(NumSlider::new(0.0..100.0, 0.05))),
-            running: BoolProperty::new(true, PropertyInfo::new("Running"))
+            layer: TexturePropCore::new(layer).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            num_pixels: NumPropCore::new_slider(num_pixels, 0..500, 10).into_prop(PropertyInfo::new("Number of Pixels")),
+            speed: NumPropCore::new_slider(1.0, 0.0..100.0, 0.05).into_prop(PropertyInfo::new("Speed")),
+            running: RawPropCore::new(true).into_prop(PropertyInfo::new("Running")),
         }
     }
     
@@ -44,72 +39,72 @@ impl AnimationRunnerConfig {
         AnimationRunner::new(self)
     }
     
-    pub fn get_layer_property(&self) -> &TextureProperty {
+    pub fn layer(&self) -> &Prop<TextureLayer> {
         &self.layer
     }
     
-    pub fn get_running_property(&self) -> &BoolProperty {
+    pub fn running(&self) -> &Prop<bool> {
         &self.running
     }
     
 }
 
-impl_component_config!(self: AnimationRunnerConfig, self.info, [
-    self.layer,
-    self.speed,
-]);
-
 struct AnimationRunnerTask {
-    layer: watch::Receiver<RwLock<Box<dyn Texture>>>,
-    num_pixels: watch::Receiver<FrameSize>,
+    layer: Prop<TextureLayer>,
+    num_pixels: Prop<FrameSize>,
     update_sender: watch::Sender<PixelFrame>,
-    running: watch::Receiver<bool>,
-    speed: watch::Receiver<f64>,
+    running: Prop<bool>,
+    speed: Prop<f64>,
     t: watch::Sender<f64>,
     last_instant: watch::Sender<Instant>,
 }
 
 impl AnimationRunnerTask {
-    async fn run(mut self) {
+    async fn run(self) {
         self.last_instant.send(Instant::now()).unwrap();
         let frame_duration = Duration::from_secs(1).div_f32(FPS);
         let mut interval = interval(frame_duration);
         interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
-        enum WaitResult {
-            Elapsed,
-            LayerChange,
-            NotRunning,
-        }
+        // enum WaitResult {
+        //     Elapsed,
+        //     LayerChange,
+        //     NotRunning,
+        // }
         loop {
-            'interval: loop {
-                let wait_result = select! {
-                    _ = interval.tick() => WaitResult::Elapsed,
-                    _ = self.layer.changed() => WaitResult::LayerChange,
-                    _ = self.running.wait_for(|&r| !r) => WaitResult::NotRunning,
-                };
-                match wait_result {
-                    WaitResult::Elapsed => break 'interval,
-                    WaitResult::LayerChange => {
-                        interval.reset();
-                        break 'interval;
-                    },
-                    WaitResult::NotRunning => {
-                        self.running.wait_for(|&r| r).await.unwrap();
-                        interval.reset();
-                        self.last_instant.send(Instant::now()).unwrap();
-                    }
-                }
+            interval.tick().await;
+            while !*self.running.read() {
+                self.last_instant.send(Instant::now()).unwrap();
+                interval.tick().await;
             }
+            // 'interval: loop {
+            //     let wait_result = select! {
+            //         _ = interval.tick() => WaitResult::Elapsed,
+            //         _ = self.layer.changed() => WaitResult::LayerChange,
+            //         _ = self.running.wait_for(|&r| !r) => WaitResult::NotRunning,
+            //     };
+            //     match wait_result {
+            //         WaitResult::Elapsed => break 'interval,
+            //         WaitResult::LayerChange => {
+            //             interval.reset();
+            //             break 'interval;
+            //         },
+            //         WaitResult::NotRunning => {
+            //             self.running.wait_for(|&r| r).await.unwrap();
+            //             interval.reset();
+            //             self.last_instant.send(Instant::now()).unwrap();
+            //         }
+            //     }
+            // }
 
             let now = Instant::now();
             self.t.send_modify(
                 |t|
                     *t += now.duration_since(*self.last_instant.borrow()).as_secs_f64()
-                        * *self.speed.borrow()
+                        * *self.speed.read()
             );
             self.last_instant.send(now).unwrap();
 
-            let pixel_data = self.layer.write().next_frame(*self.t.borrow(), *self.num_pixels.borrow());
+            let pixel_data = self.layer.write().next_frame(*self.t.borrow(), *self.num_pixels.read());
             self.update_sender.send(pixel_data).unwrap();
         }
     }
@@ -126,16 +121,16 @@ pub struct AnimationRunner {
 impl AnimationRunner {
     pub fn new(config: AnimationRunnerConfig) -> Self {
         let (update_sender, update_receiver) = watch::channel(
-            config.layer.write().next_frame(0.0, config.num_pixels.get())
+            config.layer.write().next_frame(0.0, *config.num_pixels.read())
         );
         let (t_send, t_recv) = watch::channel(0.0);
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
         let animation_runner = AnimationRunnerTask {
-            layer: config.layer.subscribe(),
-            num_pixels: config.num_pixels.subscribe(),
+            layer: config.layer.clone(),
+            num_pixels: config.num_pixels.clone(),
             update_sender,
-            running: config.running.subscribe(),
-            speed: config.speed.subscribe(),
+            running: config.running.clone(),
+            speed: config.speed.clone(),
             t: t_send,
             last_instant: last_instant_send,
         };
@@ -157,10 +152,10 @@ impl AnimationRunner {
     }
 
     pub fn get_t(&self) -> f64 {
-        if self.config.running.get() {
+        if *self.config.running.read() {
             *self.t.borrow()
                 + Instant::now().duration_since(*self.last_instant.borrow()).as_secs_f64()
-                * self.config.speed.get()
+                * *self.config.speed.read()
         } else {
             *self.t.borrow()
         }
@@ -178,17 +173,18 @@ impl Clone for AnimationRunner {
         let (update_send, update_recv) = watch::channel(self.update_receiver.borrow().clone());
         let (t_send, t_recv) = watch::channel(self.get_t());
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
+        let config = self.config.clone();
         let animation_runner = AnimationRunnerTask {
-            layer: self.config.layer.subscribe(),
-            num_pixels: self.config.num_pixels.subscribe(),
+            layer: config.layer.clone(),
+            num_pixels: config.num_pixels.clone(),
             update_sender: update_send,
-            running: self.config.running.subscribe(),
-            speed: self.config.speed.subscribe(),
+            running: config.running.clone(),
+            speed: config.speed.clone(),
             t: t_send,
             last_instant: last_instant_send,
         };
         AnimationRunner {
-            config: self.config.clone(),
+            config,
             update_receiver: update_recv,
             t: t_recv,
             last_instant: last_instant_recv,
@@ -197,7 +193,26 @@ impl Clone for AnimationRunner {
     }
 }
 
-impl_component!(self: AnimationRunner, self.config, "pixel");
+impl Component for AnimationRunner {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.config.layer,
+            self.config.num_pixels,
+            self.config.speed,
+            self.config.running,
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.config.layer,
+            self.config.num_pixels,
+            self.config.speed,
+            self.config.running,
+        );
+    }
+
+}
 
 impl Texture for AnimationRunner {
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {

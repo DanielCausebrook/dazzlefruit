@@ -17,6 +17,8 @@
             .then((pattern_builder_str: string) => {
                 console.log("OK");
                 patternBuilderData = new PatternBuilder(JSON.parse(pattern_builder_str));
+                console.log("Selected ID: ", patternBuilderData.getSelectedLayerId());
+                console.log("Root ID: ", patternBuilderData.getRootId());
             });
         unlistenPixelUpdate = await listen('pixel-update', (event: Event<{id: number, pixel_data: [[number]]}>) => {
             let colors = [];
@@ -52,7 +54,7 @@
                 <div class="header">Layer Configuration</div>
                 <div class="main">
                     {#key patternBuilderData.selectedId}
-                        <Layer bind:patternBuilderData={patternBuilderData} layerId={patternBuilderData.selectedId} paneType="Config" />
+                        <Layer bind:patternBuilderData={patternBuilderData} layerId={patternBuilderData.getSelectedLayerId()} paneType="Config" />
                     {/key}
                 </div>
             </div>

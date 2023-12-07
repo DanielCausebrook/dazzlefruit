@@ -13,7 +13,7 @@
     export let patternBuilderData: PatternBuilder;
     export let layerId: RandId;
 
-    let layerConfig: LayerConfig = patternBuilderData.getLayerConfig(layerId);
+    let layerConfig: Component = patternBuilderData.getLayerConfig(layerId);
     export let paneType: "Tree"|"Config";
 </script>
 <div class="df-layer {patternBuilderData.selectedId === layerId && paneType === 'Tree'? 'selected' : ''}">
@@ -22,13 +22,13 @@
         patternBuilderData = patternBuilderData;
     }}>
         <div class="layer-icon">
-            {#if layerConfig.layer_type === 'pixel'}
+            {#if layerConfig.type === 'texture'}
                 <IconTexture stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.layer_type === 'filter'}
+            {:else if layerConfig.type === 'filter'}
                 <IconFilter stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.layer_type === 'group'}
+            {:else if layerConfig.type === 'group'}
                 <IconFolderOpen stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.layer_type === 'producer'}
+            {:else if layerConfig.type === 'texture-generator'}
                 <IconHexagonalPrism stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
             {/if}
         </div>
@@ -39,7 +39,7 @@
     </div>
     <div class="properties">
         {#each layerConfig.properties as property}
-            {#if property.display_pane === 'TreeAndConfig' || (paneType === 'Tree' && property.display_pane === 'Tree') | (paneType === 'Config' && property.display_pane === 'Config')}
+            {#if property.display_pane === 'TreeAndConfig' || (paneType === 'Tree' && property.display_pane === 'Tree') || (paneType === 'Config' && property.display_pane === 'Config')}
                 <Property bind:patternBuilderData={patternBuilderData} propConfig={property} />
             {/if}
         {/each}

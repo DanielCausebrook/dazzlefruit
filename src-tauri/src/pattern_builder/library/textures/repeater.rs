@@ -1,39 +1,55 @@
 use std::iter::repeat_with;
-use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
-use crate::pattern_builder::component::property::cloning::BlendModeProperty;
-use crate::pattern_builder::component::property::num::NumProperty;
+use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::property::component::TexturePropCore;
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
+use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::texture::{Texture, TextureProperty};
+use crate::pattern_builder::component::texture::{Texture, TextureLayer};
+use crate::{fork_properties, view_properties};
+use crate::pattern_builder::component::Component;
 
 #[derive(Clone)]
 pub struct Repeater {
-    info: ComponentInfo,
-    texture: TextureProperty,
-    pixels_per_repeat: NumProperty<FrameSize>,
+    texture: Prop<TextureLayer>,
+    pixels_per_repeat: Prop<FrameSize>,
 }
 
 impl Repeater {
-    pub fn new(pixels_per_repeat: FrameSize, texture: impl Texture) -> Self {
+    pub fn new(pixels_per_repeat: FrameSize, texture: TextureLayer) -> Self {
         Self {
-            info: ComponentInfo::new("Repeater"),
-            texture: TextureProperty::new(Box::new(texture), PropertyInfo::new("Texture").display_pane(DisplayPane::Tree)),
-            pixels_per_repeat: NumProperty::new(pixels_per_repeat, PropertyInfo::new("Pixels per Repeat")),
+            texture: TexturePropCore::new(texture).into_prop(PropertyInfo::new("Texture").set_display_pane(DisplayPane::Tree)),
+            pixels_per_repeat: NumPropCore::new(pixels_per_repeat).into_prop(PropertyInfo::new("Pixels per Repeat")),
         }
+    }
+    
+    pub fn texture(&self) -> &Prop<TextureLayer> {
+        &self.texture
+    }
+    
+    pub fn pixels_per_repeat(&self) -> &Prop<FrameSize> {
+        &self.pixels_per_repeat
     }
 }
 
-impl_component_config!(self: Repeater, self.info, [
-    self.texture,
-    self.pixels_per_repeat,
-]);
+impl Component for Repeater {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties![
+            self.texture,
+            self.pixels_per_repeat,
+        ]
+    }
 
-impl_component!(self: Repeater, *self, "pixel");
+    fn detach(&mut self) {
+        fork_properties!(
+            self.texture,
+            self.pixels_per_repeat,
+        );
+    }
+}
 
 impl Texture for Repeater {
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
-        let mini_frame = self.texture.write().next_frame(t, self.pixels_per_repeat.get());
+        let mini_frame = self.texture.write().next_frame(t, *self.pixels_per_repeat.read());
         repeat_with(|| mini_frame.clone()).flatten().take(num_pixels as usize).collect()
     }
 }

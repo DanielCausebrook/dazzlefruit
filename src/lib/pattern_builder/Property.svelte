@@ -5,15 +5,26 @@
     import type {PatternBuilder} from "./pattern-builder";
 
     export let patternBuilderData: PatternBuilder;
-    export let propConfig: Property;
+    export let propConfig: AnyPropView;
 
     let color: string|null;
-    if (propConfig.property_type === "color") {
+    if (propConfig.type === "color") {
         $: color = rgbToHex(propConfig.value[0], propConfig.value[1], propConfig.value[2])
     }
 
     async function updateNum() {
         await invoke("update_property", {id:propConfig.id, value:propConfig.value.toString()})
+            .then(() => {
+                console.log("OK");
+                // message = "Connection Success!";
+            })
+            .catch((reason) => {
+                console.log(reason);
+            });
+    }
+
+    async function updateString() {
+        await invoke("update_property", {id:propConfig.id, value:propConfig.value})
             .then(() => {
                 console.log("OK");
                 // message = "Connection Success!";
@@ -34,57 +45,67 @@
             });
     }
 </script>
-<div class="df-property">
-    {#if propConfig.name !== null}
-        <div class="header">{propConfig.name}</div>
-    {/if}
-    {#if propConfig.property_type === "componentVec"}
-        <div class="value layer-vec">
-            {#each propConfig.value as layerId}
-                <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="Tree" />
-            {/each}
-        </div>
-    {:else if propConfig.property_type === "component"}
-        <div class="value layer">
-            <Layer bind:patternBuilderData={patternBuilderData} layerId={propConfig.value} paneType="Tree" />
-        </div>
-    {:else if propConfig.property_type === "num"}
-        <div class="value input">
-            {#if propConfig.slider !== null}
+{#if propConfig.type !== "raw"}
+    <div class="df-property">
+        {#if propConfig.name !== null}
+            <div class="header">{propConfig.name}</div>
+        {/if}
+        {#if propConfig.type === "component-vec" }
+            <div class="value layer-vec">
+                {#each propConfig.value as layerId}
+                    <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="{propConfig.display_pane}" />
+                {/each}
+            </div>
+        {:else if propConfig.type === "component" }
+            <div class="value layer">
+                <Layer bind:patternBuilderData={patternBuilderData} layerId={propConfig.value} paneType="{propConfig.display_pane}" />
+            </div>
+        {:else if propConfig.type === "num"}
+            <div class="value input">
+                {#if propConfig.data.slider !== null}
+                    <input
+                            type="range"
+                            step="{propConfig.data.slider.step}"
+                            min="{propConfig.data.slider.range.start}"
+                            max="{propConfig.data.slider.range.end}"
+                            bind:value={propConfig.value}
+                            on:input={updateNum}
+                    />
+                    <input
+                            type="number"
+                            step="{propConfig.data.slider.step}"
+                            min="{propConfig.data.slider.range.start}"
+                            max="{propConfig.data.slider.range.end}"
+                            bind:value={propConfig.value}
+                            on:change={updateNum}
+                    />
+                {:else}
+                    <input
+                            type="number"
+                            bind:value={propConfig.value}
+                            on:change={updateNum}
+                    />
+                {/if}
+            </div>
+        {:else if propConfig.type === "string" }
+            <div class="value input">
                 <input
-                        type="range"
-                        step="{propConfig.slider.step}"
-                        min="{propConfig.slider.range.start}"
-                        max="{propConfig.slider.range.end}"
+                        type="text"
                         bind:value={propConfig.value}
-                        on:input={updateNum}
+                        on:change={updateString}
                 />
+            </div>
+        {:else if propConfig.type === "color"}
+            <div class="value input">
                 <input
-                        type="number"
-                        step="{propConfig.slider.step}"
-                        min="{propConfig.slider.range.start}"
-                        max="{propConfig.slider.range.end}"
-                        bind:value={propConfig.value}
-                        on:change={updateNum}
+                        type="color"
+                        bind:value={color}
+                        on:change={updateColor}
                 />
-            {:else}
-                <input
-                        type="number"
-                        bind:value={propConfig.value}
-                        on:change={updateNum}
-                />
-            {/if}
-        </div>
-    {:else if propConfig.property_type === "color"}
-        <div class="value input">
-            <input
-                    type="color"
-                    bind:value={color}
-                    on:change={updateColor}
-            />
-        </div>
-    {/if}
-</div>
+            </div>
+        {/if}
+    </div>
+{/if}
 <style lang="scss">
   .df-property {
     border-left: 1px solid hsl(0, 0%, 8%);

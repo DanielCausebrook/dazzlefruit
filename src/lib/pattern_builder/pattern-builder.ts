@@ -1,19 +1,20 @@
 export class PatternBuilder {
     rootId: RandId;
-    layerConfigs: Map<RandId, LayerConfig>;
+    layerConfigs: Map<RandId, AnyComponent>;
     selectedId: RandId|null;
 
     constructor(data) {
         this.rootId = data.root_id;
-        this.layerConfigs = new Map<RandId, LayerConfig>(Object.entries(data.layer_configs));
-        this.selectedId = null
+        this.layerConfigs = new Map<RandId, AnyComponent>(Object.entries(data.components));
+        console.log(this.layerConfigs);
+        this.selectedId = null;
     }
 
     getRootId(): RandId {
         return this.rootId;
     }
 
-    getLayerConfig(layerId: RandId): LayerConfig|null {
+    getLayerConfig(layerId: RandId): AnyComponent|null {
         return this.layerConfigs.get(layerId) ?? null;
     }
 

@@ -1,33 +1,37 @@
-use crate::{impl_component, impl_component_config};
-use crate::pattern_builder::component::ComponentInfo;
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, Pixel, PixelFrame};
+use palette::LinSrgba;
+use crate::{fork_properties, view_properties};
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::data::{DisplayPane, FrameSize, Pixel, PixelFrame};
+use crate::pattern_builder::component::property::color::ColorPropCore;
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::property::cloning::{BlendModeProperty, ColorProperty};
 use crate::pattern_builder::component::texture::Texture;
 
 #[derive(Clone)]
 pub struct SolidColor {
-    info: ComponentInfo,
-    color: ColorProperty,
+    color: Prop<LinSrgba>,
 }
 
 impl SolidColor {
     pub fn new(color: Pixel) -> Self {
         Self {
-            info: ComponentInfo::new("Color"),
-            color: ColorProperty::new(color, PropertyInfo::unnamed().display_pane(DisplayPane::Tree)),
+            color: ColorPropCore::new(color).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
         }
     }
 }
 
-impl_component!(self: SolidColor, *self, "pixel");
+impl Component for SolidColor {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(self.color)
+    }
 
-impl_component_config!(self: SolidColor, self.info, [
-    self.color,
-]);
+    fn detach(&mut self) {
+        fork_properties!(self.color);
+    }
+}
 
 impl Texture for SolidColor {
     fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
-        vec![self.color.get(); num_pixels as usize]
+        vec![self.color.read().clone(); num_pixels as usize]
     }
 }
