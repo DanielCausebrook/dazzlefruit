@@ -10,7 +10,7 @@ use crate::{AppState, LockedAppState};
 use component::data::RandId;
 use crate::pattern_builder::component::data::{Frame, FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{PropReadGuard, PropView, PropWriteGuard};
-use crate::pattern_builder::component::texture::{TextureLayer};
+use crate::pattern_builder::component::layer::texture::{TextureLayer};
 use crate::pattern_builder::component::view_serde::PatternBuilderViewData;
 use crate::pattern_builder::library::core::animation_runner::{AnimationRunner, AnimationRunnerConfig};
 use crate::pattern_builder::library::core::empty::{Empty};

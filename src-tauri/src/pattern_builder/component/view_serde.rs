@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use serde::ser::{SerializeStruct};
+use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
-use crate::pattern_builder::component::{Layer, LayerInfo};
 use crate::pattern_builder::component::data::RandId;
+use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::PropView;
 
 #[derive(Serialize)]

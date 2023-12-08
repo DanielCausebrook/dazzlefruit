@@ -14,7 +14,7 @@ use parking_lot::RwLock;
 use rand::random;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
-use crate::pattern_builder::component::Layer;
+use crate::pattern_builder::component::layer::Layer;
 use crate::pattern_builder::component::data::{DisplayPane, RandId};
 use crate::pattern_builder::component::property::computed::ComputedPropCore;
 

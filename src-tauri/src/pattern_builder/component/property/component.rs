@@ -1,11 +1,12 @@
 use std::mem;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeSeq;
-use crate::pattern_builder::component::{Layer, Component, LayerInfo};
-use crate::pattern_builder::component::filter::FilterLayer;
-use crate::pattern_builder::component::property::{PropCore, ErasedPropCore, PropRead, PropWrite};
-use crate::pattern_builder::component::texture::TextureLayer;
-use crate::pattern_builder::component::texture_generator::TextureGeneratorLayer;
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::layer::filter::FilterLayer;
+use crate::pattern_builder::component::layer::{Layer, LayerInfo};
+use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
+use crate::pattern_builder::component::layer::texture::TextureLayer;
+use crate::pattern_builder::component::layer::texture_generator::TextureGeneratorLayer;
 
 pub struct LayerPropCore<T>(Box<T>) where T: Layer + Clone;
 

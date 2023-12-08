@@ -1,6 +1,7 @@
 use dyn_clone::{clone_trait_object, DynClone};
-use crate::pattern_builder::component::{Layer, Component, LayerInfo};
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::PixelFrame;
+use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::PropView;
 
 #[derive(Clone)]
@@ -67,17 +68,3 @@ impl<T> Filter for Box<T> where T: Filter + Clone + ?Sized {
         FilterLayer::new_from_boxed(self, info)
     }
 }
-
-// impl Filter for SharedComponent<FilterComponent> {
-//     fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {
-//         self.write().next_frame(t, active)
-//     }
-// 
-//     fn view_properties(&self) -> Vec<PropView> {
-//         self.read().view_properties()
-//     }
-// 
-//     fn detach(&mut self) {
-//         self.write().detach()
-//     }
-// }

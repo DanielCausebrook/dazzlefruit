@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use dyn_clone::{clone_trait_object, DynClone};
-use crate::pattern_builder::component::{Layer, Component, LayerInfo};
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
+use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
@@ -74,7 +75,9 @@ impl Layer for TextureLayer {
 
 impl Texture for TextureLayer {
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
-        self.texture.next_frame(t, num_pixels)
+        let frame = self.texture.next_frame(t, num_pixels);
+        self.cache = Some(frame.clone());
+        frame
     }
 }
 
@@ -93,27 +96,9 @@ impl<T> Texture for Box<T> where T: Texture + Clone + ?Sized {
     }
 
     fn into_layer(self, info: LayerInfo) -> TextureLayer where Self: Sized {
-        TextureLayer::new_from_boxed(self, info)
+        (*self).into_layer(info)
     }
 }
-
-// impl Texture for SharedComponent<TextureComponent> {
-//     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
-//         self.write().next_frame(t, num_pixels)
-//     }
-// 
-//     fn view_properties(&self) -> Vec<PropView> {
-//         self.read().view_properties()
-//     }
-// 
-//     fn for_each_child_component<'a>(&self, func: &(dyn FnMut(&dyn Component) + 'a)) {
-//         self.read().for_each_child_component(func)
-//     }
-//     
-//     fn detach(&mut self) {
-//         self.write().detach()
-//     }
-// }
 
 impl From<PixelFrame> for Box<dyn Texture> {
     fn from(value: PixelFrame) -> Self {

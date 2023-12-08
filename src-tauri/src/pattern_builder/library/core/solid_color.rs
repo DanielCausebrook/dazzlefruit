@@ -5,7 +5,7 @@ use crate::pattern_builder::component::data::{DisplayPane, FrameSize, Pixel, Pix
 use crate::pattern_builder::component::property::color::ColorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::layer::texture::Texture;
 
 #[derive(Clone)]
 pub struct SolidColor {

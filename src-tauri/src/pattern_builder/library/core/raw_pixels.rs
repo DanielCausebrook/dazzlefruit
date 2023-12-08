@@ -4,7 +4,7 @@ use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{FrameSize, PixelFrame};
 use crate::pattern_builder::component::property::{PropView};
-use crate::pattern_builder::component::texture::Texture;
+use crate::pattern_builder::component::layer::texture::Texture;
 
 #[derive(Clone)]
 pub struct RawPixels {

@@ -3,7 +3,7 @@ use palette::Mix;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::PixelFrame;
-use crate::pattern_builder::component::filter::Filter;
+use crate::pattern_builder::component::layer::filter::Filter;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;

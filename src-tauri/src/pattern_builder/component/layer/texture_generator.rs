@@ -1,8 +1,9 @@
 use dyn_clone::{clone_trait_object, DynClone};
 
-use crate::pattern_builder::component::{Layer, Component, LayerInfo};
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::PropView;
-use crate::pattern_builder::component::texture::TextureLayer;
+use crate::pattern_builder::component::layer::texture::TextureLayer;
 
 #[derive(Clone)]
 pub struct TextureGeneratorLayer {
@@ -67,17 +68,3 @@ impl<T> TextureGenerator for Box<T> where T: TextureGenerator + Clone + ?Sized {
         TextureGeneratorLayer::new_from_boxed(self, info)
     }
 }
-
-// impl TextureGenerator for SharedComponent<TextureGeneratorComponent> {
-//     fn next_texture(&mut self) -> SharedComponent<TextureComponent> {
-//         self.write().next_texture()
-//     }
-// 
-//     fn view_properties(&self) -> Vec<PropView> {
-//         self.read().view_properties()
-//     }
-// 
-//     fn detach(&mut self) {
-//         self.write().detach()
-//     }
-// }

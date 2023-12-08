@@ -13,7 +13,7 @@ use crate::pattern_builder::component::property::component::TexturePropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::texture::{Texture, TextureLayer};
+use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
 
 const FPS: f32 = 30.0;
 

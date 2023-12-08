@@ -13,23 +13,24 @@ use palette::{Lighten, Mix, WithAlpha};
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
 use tokio::sync::{RwLock, RwLockWriteGuard};
+use pattern_builder::component::layer::LayerInfo;
 
-use pattern_builder::component::texture::Texture;
+use pattern_builder::component::layer::texture::Texture;
 
 use crate::neopixel_controller::NeopixelController;
-use crate::pattern_builder::component::{Component, LayerInfo};
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
-use crate::pattern_builder::component::filter::Filter;
+use crate::pattern_builder::component::layer::filter::Filter;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
-use crate::pattern_builder::component::property::component::{TexturePropCore};
+use crate::pattern_builder::component::property::component::TexturePropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::property::raw::RawPropCore;
-use crate::pattern_builder::component::texture::TextureLayer;
-use crate::pattern_builder::component::texture_generator::TextureGenerator;
+use crate::pattern_builder::component::layer::texture::TextureLayer;
+use crate::pattern_builder::component::layer::texture_generator::TextureGenerator;
 use crate::pattern_builder::library::color_range::ColorRange;
 use crate::pattern_builder::library::core::{Group, SolidColor};
-use crate::pattern_builder::library::core::empty::{Empty};
+use crate::pattern_builder::library::core::empty::Empty;
 use crate::pattern_builder::library::filters::persistence_effect::PersistenceEffectConfig;
 use crate::pattern_builder::library::pulsing_blocks::PulsingBlocksConfig;
 use crate::pattern_builder::library::sparkles::SparklesConfig;
@@ -251,7 +252,6 @@ fn main() {
             let mask_group = Group::new();
             let pulse = Pulse::new(Empty::new_texture_component());
             pulse.texture.replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
-            // let pulse = Pulse::new(SolidColor::new(palette::named::WHITE.into()).into_component(ComponentInfo::new("Pulse Color")));
             mask_group.add_texture(pulse.into_layer(LayerInfo::new("Pulse")));
             mask_group.add_filter(PersistenceEffectConfig::new(2.0).into_filter().into_layer(LayerInfo::new("Persistence Effect")));
             

@@ -1,12 +1,13 @@
 use std::marker;
 use palette::WithAlpha;
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::{Component, LayerInfo};
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{FrameSize, PixelFrame};
-use crate::pattern_builder::component::filter::{Filter, FilterLayer};
-use crate::pattern_builder::component::property::{PropView};
-use crate::pattern_builder::component::texture::{Texture, TextureLayer};
-use crate::pattern_builder::component::texture_generator::{TextureGenerator, TextureGeneratorLayer};
+use crate::pattern_builder::component::layer::filter::{Filter, FilterLayer};
+use crate::pattern_builder::component::layer::LayerInfo;
+use crate::pattern_builder::component::property::PropView;
+use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
+use crate::pattern_builder::component::layer::texture_generator::{TextureGenerator, TextureGeneratorLayer};
 
 pub trait EmptyType: Send + Sync + Clone + 'static {
     fn get_component_type() -> &'static str;

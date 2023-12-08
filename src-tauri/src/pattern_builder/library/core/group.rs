@@ -1,15 +1,16 @@
 use std::mem;
 use palette::WithAlpha;
 use serde::{Serialize, Serializer};
-use serde::ser::{SerializeSeq};
+use serde::ser::SerializeSeq;
 
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::{Layer, Component};
+use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{DisplayPane, Frame, FrameSize, PixelFrame};
-use crate::pattern_builder::component::filter::{Filter, FilterLayer};
-use crate::pattern_builder::component::property::{PropertyInfo};
-use crate::pattern_builder::component::property::{PropCore, ErasedPropCore, Prop, PropRead, PropWrite, PropView};
-use crate::pattern_builder::component::texture::{Texture, TextureLayer};
+use crate::pattern_builder::component::layer::filter::{Filter, FilterLayer};
+use crate::pattern_builder::component::layer::{Layer, LayerInfo};
+use crate::pattern_builder::component::property::PropertyInfo;
+use crate::pattern_builder::component::property::{ErasedPropCore, Prop, PropCore, PropRead, PropView, PropWrite};
+use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
 
 #[derive(Clone)]
 pub struct Group {
