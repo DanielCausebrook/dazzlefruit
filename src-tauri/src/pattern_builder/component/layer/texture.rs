@@ -13,6 +13,7 @@ use crate::pattern_builder::library::core::RawPixels;
 #[derive(Clone)]
 pub struct TextureLayer {
     info: LayerInfo,
+    layer_type: String,
     texture: Box<dyn Texture>,
     blend_mode: Prop<BlendMode>,
     opacity: Prop<f32>,
@@ -20,13 +21,14 @@ pub struct TextureLayer {
 }
 
 impl TextureLayer {
-    pub fn new(texture: impl Texture, info: LayerInfo) -> Self {
-        Self::new_from_boxed(Box::new(texture), info)
+    pub fn new(texture: impl Texture, info: LayerInfo, layer_type: &str) -> Self {
+        Self::new_from_boxed(Box::new(texture), info, layer_type)
     }
 
-    pub fn new_from_boxed(texture: Box<impl Texture>, info: LayerInfo) -> Self {
+    pub fn new_from_boxed(texture: Box<impl Texture>, info: LayerInfo, layer_type: &str) -> Self {
         Self {
             info,
+            layer_type: layer_type.to_string(),
             texture,
             blend_mode: RawPropCore::new(BlendMode::Normal).into_prop(PropertyInfo::new("Blend Mode")),
             opacity: NumPropCore::new_slider(1.0, 0.0..1.0, 0.01).into_prop(PropertyInfo::new("Opacity")),
@@ -57,8 +59,8 @@ impl Component for TextureLayer {
 }
 
 impl Layer for TextureLayer {
-    fn type_str(&self) -> String {
-        "texture".to_string()
+    fn layer_type(&self) -> String {
+        self.layer_type.clone()
     }
 
     fn info(&self) -> &LayerInfo {
@@ -85,7 +87,7 @@ pub trait Texture: Component + DynClone + Send + Sync {
     fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame;
 
     fn into_layer(self, info: LayerInfo) -> TextureLayer where Self: Sized {
-        TextureLayer::new(self, info)
+        TextureLayer::new(self, info, "texture")
     }
 }
 clone_trait_object!(Texture);

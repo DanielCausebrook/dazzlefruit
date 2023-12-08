@@ -64,6 +64,10 @@ impl Texture for Group {
         pixel_data.resize_with(num_pixels as usize, || palette::named::BLACK.with_alpha(0.0).into_linear());
         pixel_data
     }
+
+    fn into_layer(self, info: LayerInfo) -> TextureLayer where Self: Sized {
+        TextureLayer::new(self, info, "group")
+    }
 }
 
 #[derive(Clone)]

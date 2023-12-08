@@ -8,17 +8,19 @@ use crate::pattern_builder::component::layer::texture::TextureLayer;
 #[derive(Clone)]
 pub struct TextureGeneratorLayer {
     info: LayerInfo,
+    layer_type: String,
     generator: Box<dyn TextureGenerator>,
 }
 
 impl TextureGeneratorLayer {
-    pub fn new(generator: impl TextureGenerator, info: LayerInfo) -> Self {
-        Self::new_from_boxed(Box::new(generator), info)
+    pub fn new(generator: impl TextureGenerator, info: LayerInfo, layer_type: &str) -> Self {
+        Self::new_from_boxed(Box::new(generator), info, layer_type)
     }
 
-    pub fn new_from_boxed(generator: Box<impl TextureGenerator>, info: LayerInfo) -> Self {
+    pub fn new_from_boxed(generator: Box<impl TextureGenerator>, info: LayerInfo, layer_type: &str) -> Self {
         Self {
             info,
+            layer_type: layer_type.to_string(),
             generator,
         }
     }
@@ -42,8 +44,8 @@ impl TextureGenerator for TextureGeneratorLayer {
 }
 
 impl Layer for TextureGeneratorLayer {
-    fn type_str(&self) -> String {
-        "texture-generator".to_string()
+    fn layer_type(&self) -> String {
+        self.layer_type.clone()
     }
     fn info(&self) -> &LayerInfo {
         &self.info
@@ -54,7 +56,7 @@ pub trait TextureGenerator: Component + DynClone + Send + Sync {
     fn next_texture(&mut self) -> TextureLayer;
 
     fn into_layer(self, info: LayerInfo) -> TextureGeneratorLayer where Self: Sized {
-        TextureGeneratorLayer::new(self, info)
+        TextureGeneratorLayer::new(self, info, "texture-generator")
     }
 }
 clone_trait_object!(TextureGenerator);
@@ -65,6 +67,6 @@ impl<T> TextureGenerator for Box<T> where T: TextureGenerator + Clone + ?Sized {
     }
 
     fn into_layer(self, info: LayerInfo) -> TextureGeneratorLayer where Self: Sized {
-        TextureGeneratorLayer::new_from_boxed(self, info)
+        (*self).into_layer(info)
     }
 }

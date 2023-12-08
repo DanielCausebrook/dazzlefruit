@@ -12,7 +12,7 @@ pub mod filter;
 pub mod texture_generator;
 
 pub trait Layer: Component + Send + Sync + DynClone + 'static {
-    fn type_str(&self) -> String;
+    fn layer_type(&self) -> String;
     fn info(&self) -> &LayerInfo;
     fn view_data(&self) -> HashMap<String, Box<dyn erased_serde::Serialize + 'static>> {
         HashMap::new()
@@ -21,8 +21,8 @@ pub trait Layer: Component + Send + Sync + DynClone + 'static {
 clone_trait_object!(Layer);
 
 impl<T> Layer for Box<T> where T: Layer + Clone + ?Sized {
-    fn type_str(&self) -> String {
-        self.as_ref().type_str()
+    fn layer_type(&self) -> String {
+        self.as_ref().layer_type()
     }
     fn info(&self) -> &LayerInfo { self.as_ref().info() }
     fn view_data(&self) -> HashMap<String, Box<dyn erased_serde::Serialize + 'static>> {

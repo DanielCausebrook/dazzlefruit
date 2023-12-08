@@ -2,12 +2,11 @@ use crate::pattern_builder::component::data::DisplayPane;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
+use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::pattern_builder::component::layer::texture_generator::TextureGenerator;
-use crate::pattern_builder::library::core::empty::{Empty, EmptyTexture};
+use crate::pattern_builder::library::core::empty::Empty;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::layer::LayerInfo;
 
 #[derive(Clone)]
 pub struct CyclicTextureGenerator {
@@ -45,7 +44,7 @@ impl TextureGenerator for CyclicTextureGenerator {
     fn next_texture(&mut self) -> TextureLayer {
         let textures = self.textures.read();
         if textures.is_empty() {
-            Empty::<EmptyTexture>::new().into_layer(LayerInfo::new("Empty"))
+            Empty::new_texture_layer()
         } else {
             let texture = textures.get(self.next_texture % textures.len()).unwrap();
             self.next_texture = (self.next_texture + 1) % textures.len();

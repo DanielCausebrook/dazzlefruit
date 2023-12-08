@@ -59,7 +59,7 @@ impl SparklesConfig {
 
 impl Default for SparklesConfig {
     fn default() -> Self {
-        Self::new(Empty::new_texture_component(), 6.0, 1.5)
+        Self::new(Empty::new_texture_layer(), 6.0, 1.5)
     }
 }
 

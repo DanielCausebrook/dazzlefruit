@@ -7,17 +7,19 @@ use crate::pattern_builder::component::property::PropView;
 #[derive(Clone)]
 pub struct FilterLayer {
     info: LayerInfo,
+    layer_type: String,
     filter: Box<dyn Filter>,
 }
 
 impl FilterLayer {
-    pub fn new(filter: impl Filter, info: LayerInfo) -> Self {
-        Self::new_from_boxed(Box::new(filter), info)
+    pub fn new(filter: impl Filter, info: LayerInfo, layer_type: &str) -> Self {
+        Self::new_from_boxed(Box::new(filter), info, layer_type)
     }
 
-    pub fn new_from_boxed(filter: Box<impl Filter>, info: LayerInfo) -> Self {
+    pub fn new_from_boxed(filter: Box<impl Filter>, info: LayerInfo, layer_type: &str) -> Self {
         Self {
             info,
+            layer_type: layer_type.to_string(),
             filter,
         }
     }
@@ -41,8 +43,8 @@ impl Filter for FilterLayer {
 }
 
 impl Layer for FilterLayer {
-    fn type_str(&self) -> String {
-        "filter".to_string()
+    fn layer_type(&self) -> String {
+        self.layer_type.clone()
     }
 
     fn info(&self) -> &LayerInfo {
@@ -54,7 +56,7 @@ pub trait Filter: Component + DynClone {
     fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame;
     
     fn into_layer(self, info: LayerInfo) -> FilterLayer where Self: Sized {
-        FilterLayer::new(self, info)
+        FilterLayer::new(self, info, "filter")
     }
 }
 clone_trait_object!(Filter);
@@ -65,6 +67,6 @@ impl<T> Filter for Box<T> where T: Filter + Clone + ?Sized {
     }
 
     fn into_layer(self, info: LayerInfo) -> FilterLayer where Self: Sized {
-        FilterLayer::new_from_boxed(self, info)
+        (*self).into_layer(info)
     }
 }

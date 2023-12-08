@@ -31,7 +31,7 @@ pub struct PatternBuilder {
 impl PatternBuilder {
     pub fn new(app_handle: AppHandle, num_pixels: FrameSize) -> PatternBuilder {
         let id = random();
-        let animator = AnimationRunnerConfig::new(Empty::new_texture_component(), num_pixels).into_texture();
+        let animator = AnimationRunnerConfig::new(Empty::new_texture_layer(), num_pixels).into_texture();
         let mut update_receiver = WatchStream::new(animator.get_update_receiver());
         Self {
             id,

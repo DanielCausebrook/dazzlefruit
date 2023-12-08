@@ -52,7 +52,7 @@ struct ComponentViewData {
 impl ComponentViewData {
     fn new(component: &dyn Layer,) -> Self {
         Self {
-            type_str: component.type_str(),
+            type_str: component.layer_type(),
             info: component.info().clone(),
             property_views: component.view_properties(),
             data: component.view_data(),

@@ -250,7 +250,7 @@ fn main() {
                 ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer(LayerInfo::new("Color"))
             ).into_layer(LayerInfo::new("Wave")));
             let mask_group = Group::new();
-            let pulse = Pulse::new(Empty::new_texture_component());
+            let pulse = Pulse::new(Empty::new_texture_layer());
             pulse.texture.replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
             mask_group.add_texture(pulse.into_layer(LayerInfo::new("Pulse")));
             mask_group.add_filter(PersistenceEffectConfig::new(2.0).into_filter().into_layer(LayerInfo::new("Persistence Effect")));
