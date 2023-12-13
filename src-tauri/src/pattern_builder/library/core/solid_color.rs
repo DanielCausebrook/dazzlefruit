@@ -1,11 +1,12 @@
 use palette::LinSrgba;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, Pixel, PixelFrame};
+use crate::pattern_builder::component::data::{DisplayPane, Pixel, PixelFrame};
 use crate::pattern_builder::component::property::color::ColorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::layer::texture::Texture;
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct SolidColor {
@@ -31,7 +32,7 @@ impl Component for SolidColor {
 }
 
 impl Texture for SolidColor {
-    fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
-        vec![self.color.read().clone(); num_pixels as usize]
+    fn next_frame(&mut self, _t: f64, ctx: &PatternContext) -> PixelFrame {
+        vec![self.color.read().clone(); ctx.num_pixels()].into()
     }
 }

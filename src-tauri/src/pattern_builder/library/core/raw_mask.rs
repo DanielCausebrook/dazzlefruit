@@ -5,6 +5,7 @@ use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::filter::Filter;
 use crate::pattern_builder::component::data::PixelFrame;
 use crate::pattern_builder::component::property::PropView;
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct RawMask {
@@ -28,7 +29,7 @@ impl Component for RawMask {
 }
 
 impl Filter for RawMask {
-    fn next_frame(&mut self, _t: f64, active: PixelFrame) -> PixelFrame {
+    fn next_frame(&mut self, _t: f64, active: PixelFrame, _ctx: &PatternContext) -> PixelFrame {
         self.mask
             .iter()
             .pad_using(active.len(), |_| &0f32)

@@ -2,11 +2,12 @@ use palette::WithAlpha;
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{BlendMode, Frame, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, PixelFrame};
 use crate::pattern_builder::component::layer::filter::Filter;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct PersistenceEffectConfig {
@@ -39,7 +40,7 @@ pub struct PersistenceEffect {
 impl PersistenceEffect {
     pub fn new(config: PersistenceEffectConfig) -> Self {
         PersistenceEffect {
-            pixel_data: vec![],
+            pixel_data: vec![].into(),
             config,
             last_t: 0.0,
         }
@@ -61,7 +62,7 @@ impl Component for PersistenceEffect {
 }
 
 impl Filter for PersistenceEffect {
-    fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {
+    fn next_frame(&mut self, t: f64, active: PixelFrame, _ctx: &PatternContext) -> PixelFrame {
         self.pixel_data.resize_with(active.len(), || palette::named::BLACK.with_alpha(0.0).into_linear());
 
         let delta_t = (t - self.last_t).max(0.0);

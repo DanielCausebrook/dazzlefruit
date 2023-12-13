@@ -3,12 +3,13 @@
 
 #![feature(iter_next_chunk)]
 #![feature(associated_type_defaults)]
+#![feature(inline_const)]
 
 extern crate core;
 
 use std::str::FromStr;
 
-use nalgebra_glm::smoothstep;
+use nalgebra_glm::{DVec3, smoothstep};
 use palette::{Lighten, Mix, WithAlpha};
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
@@ -19,7 +20,7 @@ use pattern_builder::component::layer::texture::Texture;
 
 use crate::neopixel_controller::NeopixelController;
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, PixelFrame};
 use crate::pattern_builder::component::layer::filter::Filter;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::component::TexturePropCore;
@@ -38,6 +39,7 @@ use crate::pattern_builder::library::texture_generators::cyclic::CyclicTextureGe
 use crate::pattern_builder::library::two_tone::TwoToneConfig;
 use crate::pattern_builder::library::waves::Wave;
 use crate::pattern_builder::math_functions::triangle_sin;
+use crate::pattern_builder::pattern_context::PatternContext;
 use crate::pattern_builder::PatternBuilder;
 use crate::pico_connection::PicoConnectionHandle;
 use crate::tauri_events::DebugMessagePayload;
@@ -77,7 +79,7 @@ async fn set_color(color_str: String, tauri_state: tauri::State<'_, LockedAppSta
     Ok(())
 }
 
-fn get_birds_pattern() -> Box<dyn Texture> {
+fn get_birds_pattern() -> TextureLayer {
     // let mut mask_vec = vec![0.5; num_pixels];
     // for x in (0..12).chain(13..49).chain(53..89).step_by(2) {
     //     mask_vec[x] = 1.0;
@@ -89,8 +91,7 @@ fn get_birds_pattern() -> Box<dyn Texture> {
             SolidColor::new(palette::named::BLUE.into()).into_layer(LayerInfo::new("Color 1")),
             SolidColor::new(palette::named::PURPLE.into()).into_layer(LayerInfo::new("Color 2"))
         ),
-        0.8,
-        1.0
+        0.8
     );
     colors.gradient_width().try_replace_value(0.3).unwrap();
 
@@ -100,10 +101,10 @@ fn get_birds_pattern() -> Box<dyn Texture> {
             SolidColor::new(palette::named::BLACK.into()).into_layer(LayerInfo::new("Opaque")),
             SolidColor::new(palette::named::BLACK.transparent().into()).into_layer(LayerInfo::new("Transparent"))
         ),
-        0.3,
-        0.1,
+        0.3
     );
-    sparkle_mask.noise_travel_speed().try_replace_value(5.0).unwrap();
+    sparkle_mask.noise_scaling().try_replace_value(DVec3::repeat(0.1)).unwrap();
+    sparkle_mask.noise_travel_speed().try_replace_value(DVec3::new(5.0, 0.0, 0.0)).unwrap();
     sparkle_mask.gradient_offset().try_replace_value(-0.2).unwrap();
     let sparkle_mask_component = sparkle_mask.into_texture().into_layer(LayerInfo::new("Sparkle Mask"));
     sparkle_mask_component.blend_mode().try_replace_value(BlendMode::AlphaMask).unwrap();
@@ -112,9 +113,9 @@ fn get_birds_pattern() -> Box<dyn Texture> {
             SolidColor::new(palette::named::BLUE.into_linear().lighten(0.3).into()).into_layer(LayerInfo::new("Color")),
             SolidColor::new(palette::named::PURPLE.into_linear().lighten(0.3).into()).into_layer(LayerInfo::new("Color"))
         ),
-        2.0,
-        10.0
+        2.0
     );
+    sparkle_colors.noise_scaling().try_replace_value(DVec3::repeat(10.0)).unwrap();
     sparkle_colors.gradient_width().try_replace_value(0.3).unwrap();
     sparkle_color_group.add_texture(sparkle_colors.into_texture().into_layer(LayerInfo::new("Colours")));
     sparkle_color_group.add_texture(sparkle_mask_component);
@@ -130,10 +131,10 @@ fn get_birds_pattern() -> Box<dyn Texture> {
     // group.add_filter_layer(PersistenceEffectConfig::new(2.0).create());
     // group.add_filter_layer(Box::new(bird_mask));
 
-    Box::new(group)
+    group.into_layer(LayerInfo::new("Birds Pattern"))
 }
 
-fn get_test_pattern() -> Box<dyn Texture> {
+fn get_test_pattern() -> TextureLayer {
     let colors = vec![
         palette::named::PURPLE,
         palette::named::BLUE,
@@ -147,17 +148,17 @@ fn get_test_pattern() -> Box<dyn Texture> {
                 SolidColor::new(transparent).into_layer(LayerInfo::new("Transparent")),
                 SolidColor::new(color.into()).into_layer(LayerInfo::new("Color"))
             ),
-            1.0,
-            0.1
+            1.0
         );
+        tt.noise_scaling().try_replace_value(DVec3::repeat(0.1)).unwrap();
         tt.gradient_offset().try_replace_value(0.15).unwrap();
         tt.gradient_width().try_replace_value(0.15).unwrap();
         group.add_texture(tt.into_texture().into_layer(LayerInfo::new("Two Tone")));
     }
-    Box::new(group)
+    group.into_layer(LayerInfo::new("Test 1"))
 }
 
-fn get_test_pattern_2() -> Box<dyn Texture> {
+fn get_test_pattern_2() -> TextureLayer {
     let producer = CyclicTextureGenerator::new(
         vec![
             SolidColor::new(palette::named::BLUE.into()),
@@ -168,7 +169,7 @@ fn get_test_pattern_2() -> Box<dyn Texture> {
             .collect()
     );
     let pulsing_blocks = PulsingBlocksConfig::new(producer.into_layer(LayerInfo::new("Textures")));
-    Box::new(pulsing_blocks.into_texture())
+    pulsing_blocks.into_texture().into_layer(LayerInfo::new("Test 2"))
 }
 
 #[derive(Clone)]
@@ -211,11 +212,11 @@ impl Component for Pulse {
 }
 
 impl Texture for Pulse {
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
-        let pulse_pos = 0.5 * (triangle_sin(*self.smoothness.read(), *self.period.read(), t as f32) + 1.0) * (num_pixels as f32 - *self.width.read());
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
+        let pulse_pos = 0.5 * (triangle_sin(*self.smoothness.read(), *self.period.read(), t as f32) + 1.0) * (ctx.num_pixels() as f32 - *self.width.read());
         let step1 = [pulse_pos - 0.5, pulse_pos + 0.5];
         let step2 = [pulse_pos + *self.width.read() - 0.5, pulse_pos + *self.width.read() + 0.5];
-        self.texture.write().next_frame(t, num_pixels).into_iter()
+        self.texture.write().next_frame(t, ctx).into_iter()
             .zip(0..)
             .map(|(pixel, x)| {
                 let amount = smoothstep(step1[0], step1[1], x as f32) - smoothstep(step2[0], step2[1], x as f32);

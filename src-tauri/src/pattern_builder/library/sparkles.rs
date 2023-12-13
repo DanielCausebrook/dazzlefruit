@@ -1,10 +1,9 @@
-use palette::WithAlpha;
 use rand::distributions::{Distribution, Uniform};
 use rand_distr::Poisson;
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
 use crate::pattern_builder::component::layer::filter::Filter;
 use crate::pattern_builder::component::property::component::{TexturePropCore};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
@@ -14,6 +13,7 @@ use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
 use crate::pattern_builder::library::core::empty::Empty;
 use crate::pattern_builder::library::filters::persistence_effect::{PersistenceEffect, PersistenceEffectConfig};
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct SparklesConfig {
@@ -104,20 +104,20 @@ impl Component for Sparkles {
 }
 
 impl Texture for Sparkles {
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
         let delta_t = (t - self.last_t).max(0.0);
         self.last_t = t;
-        self.weights.resize(num_pixels as usize, 1.0);
-        let texture_frame = self.config.texture.write().next_frame(t, num_pixels);
+        self.weights.resize(ctx.num_pixels(), 1.0);
+        let texture_frame = self.config.texture.write().next_frame(t, ctx);
         let num_sparkles = if let Ok(poisson) =
-            Poisson::new(delta_t * *self.config.density.read() * num_pixels as f64) {
+            Poisson::new(delta_t * *self.config.density.read() * ctx.num_pixels() as f64) {
             poisson.sample(&mut rand::thread_rng()) + self.num_sparkles_remainder
         } else {
             self.num_sparkles_remainder
         };
         self.num_sparkles_remainder = num_sparkles.fract();
         let num_sparkles = num_sparkles.round() as i64;
-        let mut pixels = vec![palette::named::BLACK.into_linear().transparent(); num_pixels as usize];
+        let mut pixels = PixelFrame::empty(ctx.num_pixels());
         for weight in self.weights.iter_mut() {
             *weight += delta_t;
         }
@@ -129,6 +129,6 @@ impl Texture for Sparkles {
             pixels[x].alpha = pixels[x].alpha * strength;
             self.weights[x] /= 1.0 + strength as f64;
         }
-        self.persistence.next_frame(t, pixels)
+        self.persistence.next_frame(t, pixels, ctx)
     }
 }

@@ -31,6 +31,7 @@ type DisplayPane = 'Tree'|'Config'|'TreeAndConfig';
 
 type AnyPropView =
     PropView<NumPropMetadata> |
+    PropView<NumVecPropMetadata> |
     PropView<ColorPropMetadata> |
     PropView<ComponentPropMetadata> |
     PropView<ComponentVecPropMetadata> |
@@ -54,6 +55,13 @@ type NumPropMetadata = {
     value: number,
     data: {
         slider: null | { range: NumRange, step: number },
+    }
+};
+type NumVecPropMetadata = {
+    type: 'num-vec',
+    value: [number],
+    data: {
+        sliders: [null | { range: NumRange, step: number }],
     }
 };
 type ColorPropMetadata = {

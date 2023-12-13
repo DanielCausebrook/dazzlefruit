@@ -1,57 +1,27 @@
 use std::time::{Duration, Instant};
 
-use palette::WithAlpha;
 use tauri::async_runtime::{JoinHandle, spawn};
 use tokio::sync::watch;
 use tokio::time::{interval, MissedTickBehavior};
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{DisplayPane, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::component::TexturePropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
+use crate::pattern_builder::pattern_context::PatternContext;
+use crate::pattern_builder::pattern_context::position_map::PositionMap;
 
 const FPS: f32 = 30.0;
 
-#[derive(Clone)]
-pub struct AnimationRunnerConfig {
-    layer: Prop<TextureLayer>,
-    num_pixels: Prop<FrameSize>,
-    speed: Prop<f64>,
-    running: Prop<bool>,
-}
-
-impl AnimationRunnerConfig {
-    pub fn new(layer: TextureLayer, num_pixels: FrameSize) -> Self {
-        Self {
-            layer: TexturePropCore::new(layer).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
-            num_pixels: NumPropCore::new_slider(num_pixels, 0..500, 10).into_prop(PropertyInfo::new("Number of Pixels")),
-            speed: NumPropCore::new_slider(1.0, 0.0..100.0, 0.05).into_prop(PropertyInfo::new("Speed")),
-            running: RawPropCore::new(true).into_prop(PropertyInfo::new("Running")),
-        }
-    }
-    
-    pub fn into_texture(self) -> AnimationRunner {
-        AnimationRunner::new(self)
-    }
-    
-    pub fn layer(&self) -> &Prop<TextureLayer> {
-        &self.layer
-    }
-    
-    pub fn running(&self) -> &Prop<bool> {
-        &self.running
-    }
-    
-}
-
 struct AnimationRunnerTask {
     layer: Prop<TextureLayer>,
-    num_pixels: Prop<FrameSize>,
+    num_pixels: Prop<usize>,
+    position_map: Prop<PositionMap<'static>>,
     update_sender: watch::Sender<PixelFrame>,
     running: Prop<bool>,
     speed: Prop<f64>,
@@ -104,120 +74,133 @@ impl AnimationRunnerTask {
             );
             self.last_instant.send(now).unwrap();
 
-            let pixel_data = self.layer.write().next_frame(*self.t.borrow(), *self.num_pixels.read());
+            let num_pixels = *self.num_pixels.read();
+            let mut ctx = PatternContext::new(num_pixels);
+            let guard = self.position_map.read();
+            ctx.set_position_map(guard.slice(0..num_pixels));
+            let pixel_data = self.layer.write().next_frame(*self.t.borrow(), &ctx);
             self.update_sender.send(pixel_data).unwrap();
         }
     }
 }
 
-pub struct AnimationRunner {
-    config: AnimationRunnerConfig,
+pub struct Pattern {
     animation_runner_handle: Option<JoinHandle<()>>,
-    update_receiver: watch::Receiver<PixelFrame>,
+    frame_receiver: watch::Receiver<PixelFrame>,
     t: watch::Receiver<f64>,
     last_instant: watch::Receiver<Instant>,
+    layer: Prop<TextureLayer>,
+    num_pixels: Prop<usize>,
+    position_map: Prop<PositionMap<'static>>,
+    running: Prop<bool>,
+    speed: Prop<f64>,
 }
 
-impl AnimationRunner {
-    pub fn new(config: AnimationRunnerConfig) -> Self {
+impl Pattern {
+    pub fn new(mut layer: TextureLayer, num_pixels: usize) -> Self {
         let (update_sender, update_receiver) = watch::channel(
-            config.layer.write().next_frame(0.0, *config.num_pixels.read())
+            layer.next_frame(0.0, &PatternContext::new(num_pixels))
         );
         let (t_send, t_recv) = watch::channel(0.0);
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
         let animation_runner = AnimationRunnerTask {
-            layer: config.layer.clone(),
-            num_pixels: config.num_pixels.clone(),
+            layer: TexturePropCore::new(layer).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            num_pixels: NumPropCore::new_slider(num_pixels, 0..500, 10).into_prop(PropertyInfo::new("Number of Pixels")),
+            position_map: RawPropCore::new(PositionMap::new_linear(num_pixels)).into_prop(PropertyInfo::new("Position Map")),
             update_sender,
-            running: config.running.clone(),
-            speed: config.speed.clone(),
+            running: RawPropCore::new(true).into_prop(PropertyInfo::new("Running")),
+            speed: NumPropCore::new_slider(1.0, 0.0..100.0, 0.05).into_prop(PropertyInfo::new("Speed")),
             t: t_send,
             last_instant: last_instant_send,
         };
-        AnimationRunner {
-            config,
-            update_receiver,
+        Pattern {
+            frame_receiver: update_receiver,
             t: t_recv,
             last_instant: last_instant_recv,
+            layer: animation_runner.layer.clone(),
+            num_pixels: animation_runner.num_pixels.clone(),
+            position_map: animation_runner.position_map.clone(),
+            running: animation_runner.running.clone(),
+            speed: animation_runner.speed.clone(),
             animation_runner_handle: Some(spawn(animation_runner.run())),
         }
     }
 
-    pub fn config(&self) -> &AnimationRunnerConfig {
-        &self.config
+    pub fn layer(&self) -> &Prop<TextureLayer> {
+        &self.layer
     }
 
-    pub fn get_update_receiver(&self) -> watch::Receiver<PixelFrame> {
-        self.update_receiver.clone()
+    pub fn running(&self) -> &Prop<bool> {
+        &self.running
+    }
+
+    pub fn get_frame_receiver(&self) -> watch::Receiver<PixelFrame> {
+        self.frame_receiver.clone()
     }
 
     pub fn get_t(&self) -> f64 {
-        if *self.config.running.read() {
+        if *self.running.read() {
             *self.t.borrow()
                 + Instant::now().duration_since(*self.last_instant.borrow()).as_secs_f64()
-                * *self.config.speed.read()
+                * *self.speed.read()
         } else {
             *self.t.borrow()
         }
     }
 }
 
-impl Drop for AnimationRunner {
+impl Drop for Pattern {
     fn drop(&mut self) {
         self.animation_runner_handle.take().unwrap().abort();
     }
 }
 
-impl Clone for AnimationRunner {
+impl Clone for Pattern {
     fn clone(&self) -> Self {
-        let (update_send, update_recv) = watch::channel(self.update_receiver.borrow().clone());
+        let (update_send, update_recv) = watch::channel(self.frame_receiver.borrow().clone());
         let (t_send, t_recv) = watch::channel(self.get_t());
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
-        let config = self.config.clone();
         let animation_runner = AnimationRunnerTask {
-            layer: config.layer.clone(),
-            num_pixels: config.num_pixels.clone(),
+            layer: self.layer.clone(),
+            num_pixels: self.num_pixels.clone(),
+            position_map: self.position_map.clone(),
             update_sender: update_send,
-            running: config.running.clone(),
-            speed: config.speed.clone(),
+            running: self.running.clone(),
+            speed: self.speed.clone(),
             t: t_send,
             last_instant: last_instant_send,
         };
-        AnimationRunner {
-            config,
-            update_receiver: update_recv,
+        Pattern {
+            frame_receiver: update_recv,
             t: t_recv,
             last_instant: last_instant_recv,
+            layer: animation_runner.layer.clone(),
+            num_pixels: animation_runner.num_pixels.clone(),
+            position_map: animation_runner.position_map.clone(),
+            running: animation_runner.running.clone(),
+            speed: animation_runner.speed.clone(),
             animation_runner_handle: Some(spawn(animation_runner.run())),
         }
     }
 }
 
-impl Component for AnimationRunner {
+impl Component for Pattern {
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
-            self.config.layer,
-            self.config.num_pixels,
-            self.config.speed,
-            self.config.running,
+            self.layer,
+            self.num_pixels,
+            self.speed,
+            self.running,
         )
     }
 
     fn detach(&mut self) {
         fork_properties!(
-            self.config.layer,
-            self.config.num_pixels,
-            self.config.speed,
-            self.config.running,
+            self.layer,
+            self.num_pixels,
+            self.speed,
+            self.running,
         );
     }
 
-}
-
-impl Texture for AnimationRunner {
-    fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
-        let mut pixel_data = self.update_receiver.borrow().clone();
-        pixel_data.resize_with(num_pixels as usize, || palette::named::BLACK.with_alpha(0.0).into_linear());
-        pixel_data
-    }
 }

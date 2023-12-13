@@ -3,6 +3,7 @@ use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::PixelFrame;
 use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::PropView;
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct FilterLayer {
@@ -37,8 +38,8 @@ impl Component for FilterLayer {
 }
 
 impl Filter for FilterLayer {
-    fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {
-        self.filter.next_frame(t, active)
+    fn next_frame(&mut self, t: f64, active: PixelFrame, ctx: &PatternContext) -> PixelFrame {
+        self.filter.next_frame(t, active, ctx)
     }
 }
 
@@ -53,7 +54,7 @@ impl Layer for FilterLayer {
 }
 
 pub trait Filter: Component + DynClone {
-    fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame;
+    fn next_frame(&mut self, t: f64, active: PixelFrame, ctx: &PatternContext) -> PixelFrame;
     
     fn into_layer(self, info: LayerInfo) -> FilterLayer where Self: Sized {
         FilterLayer::new(self, info, "filter")
@@ -62,8 +63,8 @@ pub trait Filter: Component + DynClone {
 clone_trait_object!(Filter);
 
 impl<T> Filter for Box<T> where T: Filter + Clone + ?Sized {
-    fn next_frame(&mut self, t: f64, active: PixelFrame) -> PixelFrame {
-        self.as_mut().next_frame(t, active)
+    fn next_frame(&mut self, t: f64, active: PixelFrame, ctx: &PatternContext) -> PixelFrame {
+        self.as_mut().next_frame(t, active, ctx)
     }
 
     fn into_layer(self, info: LayerInfo) -> FilterLayer where Self: Sized {

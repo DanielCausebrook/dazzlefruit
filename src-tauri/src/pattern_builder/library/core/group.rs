@@ -5,12 +5,13 @@ use serde::ser::SerializeSeq;
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{DisplayPane, Frame, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
 use crate::pattern_builder::component::layer::filter::{Filter, FilterLayer};
 use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::property::{ErasedPropCore, Prop, PropCore, PropRead, PropView, PropWrite};
 use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct Group {
@@ -44,24 +45,24 @@ impl Component for Group {
 }
 
 impl Texture for Group {
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
         let mut pixel_data = self.layers.write().iter_mut()
             .fold(None, |active_option, layer| {
                 match layer {
                     GroupedLayer::Texture(pixel_layer) => {
-                        let pixel_data: PixelFrame = pixel_layer.next_frame(t, num_pixels).into_iter().map(|pixel| pixel.with_alpha(pixel.alpha * *pixel_layer.opacity().read())).collect();
+                        let pixel_data: PixelFrame = pixel_layer.next_frame(t, ctx).into_iter().map(|pixel| pixel.with_alpha(pixel.alpha * *pixel_layer.opacity().read())).collect();
                         match active_option {
                             Some(active) => Some(pixel_data.blend(active, *pixel_layer.blend_mode().read())),
                             None => Some(pixel_data),
                         }
                     },
                     GroupedLayer::Filter(filter_layer) => {
-                        active_option.map(|active| filter_layer.next_frame(t, active))
+                        active_option.map(|active| filter_layer.next_frame(t, active, ctx))
                     }
                 }
             })
-            .unwrap_or_else(|| vec![]);
-        pixel_data.resize_with(num_pixels as usize, || palette::named::BLACK.with_alpha(0.0).into_linear());
+            .unwrap_or_else(|| vec![].into());
+        pixel_data.resize_with_transparent(ctx.num_pixels());
         pixel_data
     }
 

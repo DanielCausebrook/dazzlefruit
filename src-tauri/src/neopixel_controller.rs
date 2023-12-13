@@ -1,4 +1,3 @@
-use palette::LinSrgba;
 use tokio::sync::{RwLockWriteGuard, watch};
 
 use tauri::async_runtime::{JoinHandle, spawn};
@@ -28,7 +27,7 @@ impl Drop for NeopixelController {
 impl NeopixelControllerData {
 
     async fn display(&self, mut pixel_data: PixelFrame) {
-        pixel_data.resize(self.num_pixels as usize, Into::<LinSrgba>::into(palette::named::BLACK));
+        pixel_data.resize_with_transparent(self.num_pixels as usize);
         let bytes = pixel_data.iter()
             .flat_map(|color| {
                 let color_pre = color.premultiply();

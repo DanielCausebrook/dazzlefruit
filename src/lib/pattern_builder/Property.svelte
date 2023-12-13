@@ -12,19 +12,8 @@
         $: color = rgbToHex(propConfig.value[0], propConfig.value[1], propConfig.value[2])
     }
 
-    async function updateNum() {
-        await invoke("update_property", {id:propConfig.id, value:propConfig.value.toString()})
-            .then(() => {
-                console.log("OK");
-                // message = "Connection Success!";
-            })
-            .catch((reason) => {
-                console.log(reason);
-            });
-    }
-
-    async function updateString() {
-        await invoke("update_property", {id:propConfig.id, value:propConfig.value})
+    async function update() {
+        await invoke("update_property", {id:propConfig.id, value:JSON.stringify(propConfig.value)})
             .then(() => {
                 console.log("OK");
                 // message = "Connection Success!";
@@ -69,7 +58,7 @@
                             min="{propConfig.data.slider.range.start}"
                             max="{propConfig.data.slider.range.end}"
                             bind:value={propConfig.value}
-                            on:input={updateNum}
+                            on:input={update}
                     />
                     <input
                             type="number"
@@ -77,22 +66,51 @@
                             min="{propConfig.data.slider.range.start}"
                             max="{propConfig.data.slider.range.end}"
                             bind:value={propConfig.value}
-                            on:change={updateNum}
+                            on:change={update}
                     />
                 {:else}
                     <input
                             type="number"
                             bind:value={propConfig.value}
-                            on:change={updateNum}
+                            on:change={update}
                     />
                 {/if}
             </div>
+        {:else if propConfig.type === "num-vec"}
+            {#each propConfig.value as _, i}
+                <div class="value input">
+                    {#if propConfig.data.sliders[i] !== null}
+                        <input
+                                type="range"
+                                step="{propConfig.data.sliders[i].step}"
+                                min="{propConfig.data.sliders[i].range.start}"
+                                max="{propConfig.data.sliders[i].range.end}"
+                                bind:value={propConfig.value[i]}
+                                on:input={update}
+                        />
+                        <input
+                                type="number"
+                                step="{propConfig.data.sliders[i].step}"
+                                min="{propConfig.data.sliders[i].range.start}"
+                                max="{propConfig.data.sliders[i].range.end}"
+                                bind:value={propConfig.value[i]}
+                                on:change={update}
+                        />
+                    {:else}
+                        <input
+                                type="number"
+                                bind:value={propConfig.value[i]}
+                                on:change={update}
+                        />
+                    {/if}
+                </div>
+            {/each}
         {:else if propConfig.type === "string" }
             <div class="value input">
                 <input
                         type="text"
                         bind:value={propConfig.value}
-                        on:change={updateString}
+                        on:change={update}
                 />
             </div>
         {:else if propConfig.type === "color"}

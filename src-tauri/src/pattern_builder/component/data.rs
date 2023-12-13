@@ -5,7 +5,9 @@ use rand::distributions::{Distribution, Standard};
 use rand::Rng;
 use std::fmt::{Display, Formatter};
 use std::num::ParseIntError;
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
+use std::vec::IntoIter;
 
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub enum BlendMode {
@@ -13,18 +15,20 @@ pub enum BlendMode {
     AlphaMask,
 }
 
-pub type FrameSize = u16;
 pub type Pixel = LinSrgba;
-pub type PixelFrame = Vec<Pixel>;
+#[derive(Clone)]
+pub struct PixelFrame(Vec<Pixel>);
 
-pub trait Frame {
-    fn blend(&self, active: PixelFrame, blend_mode: BlendMode) -> PixelFrame;
-    fn into_srgb_components(self) -> Vec<(u8, u8, u8)>;
-    fn into_srgba_components(self) -> Vec<(u8, u8, u8, u8)>;
-}
+impl PixelFrame {
+    pub fn empty(num_pixels: usize) -> Self {
+        vec![palette::named::BLACK.into_linear().transparent(); num_pixels].into()
+    }
 
-impl Frame for PixelFrame {
-    fn blend(&self, active: PixelFrame, blend_mode: BlendMode) -> PixelFrame {
+    pub fn resize_with_transparent(&mut self, num_pixels: usize) {
+        self.0.resize_with(num_pixels, || palette::named::BLACK.into_linear().transparent());
+    }
+
+    pub fn blend(&self, active: Self, blend_mode: BlendMode) -> Self {
         match blend_mode {
             BlendMode::Normal => {
                 self.iter()
@@ -40,15 +44,50 @@ impl Frame for PixelFrame {
             }
         }
     }
-    fn into_srgb_components(self) -> Vec<(u8, u8, u8)> {
+    pub fn into_srgb_components(self) -> Vec<(u8, u8, u8)> {
         self.into_iter()
             .map(|c| Srgb::<u8>::from_linear(c.premultiply().into()).into_components())
             .collect()
     }
-    fn into_srgba_components(self) -> Vec<(u8, u8, u8, u8)> {
+    pub fn into_srgba_components(self) -> Vec<(u8, u8, u8, u8)> {
         self.into_iter()
             .map(|c| Srgba::<u8>::from_linear(c.into()).into_components())
             .collect()
+    }
+}
+
+impl Deref for PixelFrame {
+    type Target = Vec<Pixel>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for PixelFrame {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl From<Vec<Pixel>> for PixelFrame {
+    fn from(value: Vec<Pixel>) -> Self {
+        Self(value)
+    }
+}
+
+impl FromIterator<Pixel> for PixelFrame {
+    fn from_iter<T: IntoIterator<Item=Pixel>>(iter: T) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
+impl IntoIterator for PixelFrame {
+    type Item = Pixel;
+    type IntoIter = IntoIter<Pixel>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

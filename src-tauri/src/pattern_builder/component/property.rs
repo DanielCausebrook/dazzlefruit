@@ -4,6 +4,7 @@ pub mod component;
 pub mod computed;
 pub mod color;
 pub mod string;
+pub mod num_vec;
 
 use std::collections::HashMap;
 use std::mem;

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use dyn_clone::{clone_trait_object, DynClone};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{BlendMode, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, PixelFrame};
 use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -9,6 +9,7 @@ use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 
 use crate::pattern_builder::library::core::RawPixels;
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct TextureLayer {
@@ -76,15 +77,15 @@ impl Layer for TextureLayer {
 }
 
 impl Texture for TextureLayer {
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
-        let frame = self.texture.next_frame(t, num_pixels);
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
+        let frame = self.texture.next_frame(t, ctx);
         self.cache = Some(frame.clone());
         frame
     }
 }
 
 pub trait Texture: Component + DynClone + Send + Sync {
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame;
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame;
 
     fn into_layer(self, info: LayerInfo) -> TextureLayer where Self: Sized {
         TextureLayer::new(self, info, "texture")
@@ -93,8 +94,8 @@ pub trait Texture: Component + DynClone + Send + Sync {
 clone_trait_object!(Texture);
 
 impl<T> Texture for Box<T> where T: Texture + Clone + ?Sized {
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
-        self.as_mut().next_frame(t, num_pixels)
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
+        self.as_mut().next_frame(t, ctx)
     }
 
     fn into_layer(self, info: LayerInfo) -> TextureLayer where Self: Sized {

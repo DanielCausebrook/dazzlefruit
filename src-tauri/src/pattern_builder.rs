@@ -8,31 +8,33 @@ use tokio::sync::watch::Receiver;
 use tokio_stream::wrappers::WatchStream;
 use crate::{AppState, LockedAppState};
 use component::data::RandId;
-use crate::pattern_builder::component::data::{Frame, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::PixelFrame;
 use crate::pattern_builder::component::property::{PropReadGuard, PropView, PropWriteGuard};
 use crate::pattern_builder::component::layer::texture::{TextureLayer};
 use crate::pattern_builder::component::view_serde::PatternBuilderViewData;
-use crate::pattern_builder::library::core::animation_runner::{AnimationRunner, AnimationRunnerConfig};
+use crate::pattern_builder::pattern::Pattern;
 use crate::pattern_builder::library::core::empty::{Empty};
 use crate::tauri_events::PixelUpdatePayload;
 
 pub mod library;
 pub mod component;
 pub mod math_functions;
+pub mod pattern_context;
+pub mod pattern;
 
 pub struct PatternBuilder {
     id: u64,
-    num_pixels: u16,
-    animator: AnimationRunner,
+    num_pixels: usize,
+    pattern: Pattern,
     pixel_updater_handle: JoinHandle<()>,
     property_map: HashMap<RandId, PropView>,
 }
 
 impl PatternBuilder {
-    pub fn new(app_handle: AppHandle, num_pixels: FrameSize) -> PatternBuilder {
+    pub fn new(app_handle: AppHandle, num_pixels: usize) -> PatternBuilder {
         let id = random();
-        let animator = AnimationRunnerConfig::new(Empty::new_texture_layer(), num_pixels).into_texture();
-        let mut update_receiver = WatchStream::new(animator.get_update_receiver());
+        let pattern = Pattern::new(Empty::new_texture_layer(), num_pixels);
+        let mut update_receiver = WatchStream::new(pattern.get_frame_receiver());
         Self {
             id,
             num_pixels,
@@ -44,32 +46,32 @@ impl PatternBuilder {
                     ).unwrap();
                 }
             }),
-            animator,
+            pattern: pattern,
             property_map: HashMap::new(),
         }
     }
 
     pub fn read_texture(&self) -> PropReadGuard<'_, TextureLayer> {
-        self.animator.config().layer().read()
+        self.pattern.layer().read()
     }
 
     pub fn write_texture(&self) -> PropWriteGuard<'_, TextureLayer> {
-        self.animator.config().layer().write()
+        self.pattern.layer().write()
     }
 
     pub fn set_texture(&mut self, texture: TextureLayer) {
-        self.animator.config().layer().try_replace_value(texture).unwrap();
+        self.pattern.layer().try_replace_value(texture).unwrap();
     }
 
     pub fn get_pattern_update_receiver(&self) -> Receiver<PixelFrame> {
-        self.animator.get_update_receiver()
+        self.pattern.get_frame_receiver()
     }
 }
 
 #[tauri::command]
 pub async fn get_pattern_config(tauri_state: tauri::State<'_, LockedAppState>) -> Result<String, String> {
     let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
-    let layer_prop = state.pattern_builder.animator.config().layer();
+    let layer_prop = state.pattern_builder.pattern.layer();
     let root_layer = layer_prop.read();
     let view_data = PatternBuilderViewData::new(&*root_layer);
     drop(root_layer);

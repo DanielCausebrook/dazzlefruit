@@ -39,10 +39,7 @@ impl<T> NumPropCore<T> where T: Num + Copy + Serialize + DeserializeOwned + Send
     }
 
     pub fn fork(&self) -> Self {
-        Self {
-            val: self.val.clone(),
-            slider: self.slider.clone(),
-        }
+        self.clone()
     }
 }
 

@@ -1,12 +1,12 @@
-use palette::WithAlpha;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::PixelFrame;
 use crate::pattern_builder::component::layer::filter::{Filter, FilterLayer};
 use crate::pattern_builder::component::layer::LayerInfo;
 use crate::pattern_builder::component::property::PropView;
 use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
 use crate::pattern_builder::component::layer::texture_generator::{TextureGenerator, TextureGeneratorLayer};
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct Empty {}
@@ -35,8 +35,8 @@ impl Component for Empty {
 }
 
 impl Texture for Empty {
-    fn next_frame(&mut self, _t: f64, num_pixels: FrameSize) -> PixelFrame {
-        vec![palette::named::BLACK.into_linear().transparent(); num_pixels as usize]
+    fn next_frame(&mut self, _t: f64, ctx: &PatternContext) -> PixelFrame {
+        PixelFrame::empty(ctx.num_pixels())
     }
 
     fn into_layer(self, info: LayerInfo) -> TextureLayer where Self: Sized {
@@ -45,7 +45,7 @@ impl Texture for Empty {
 }
 
 impl Filter for Empty {
-    fn next_frame(&mut self, _t: f64, active: PixelFrame) -> PixelFrame {
+    fn next_frame(&mut self, _t: f64, active: PixelFrame, _ctx: &PatternContext) -> PixelFrame {
         active
     }
 

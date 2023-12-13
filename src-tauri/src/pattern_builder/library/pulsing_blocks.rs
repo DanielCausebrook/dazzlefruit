@@ -1,11 +1,11 @@
 use std::sync::Arc;
-use nalgebra_glm::smoothstep;
+use nalgebra_glm::{DVec3, smoothstep};
 use palette::WithAlpha;
 use parking_lot::Mutex;
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{BlendMode, DisplayPane, Frame, FrameSize, PixelFrame};
+use crate::pattern_builder::component::data::{BlendMode, DisplayPane, PixelFrame};
 use crate::pattern_builder::component::layer::LayerInfo;
 use crate::pattern_builder::component::property::component::TextureGeneratorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
@@ -14,8 +14,10 @@ use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
 use crate::pattern_builder::component::layer::texture_generator::{TextureGenerator, TextureGeneratorLayer};
+use crate::pattern_builder::component::property::num_vec::NumVecPropCore;
 use crate::pattern_builder::library::core::SolidColor;
 use crate::pattern_builder::library::two_tone::{TwoTone, TwoToneConfig};
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct PulsingBlocksConfig {
@@ -24,7 +26,7 @@ pub struct PulsingBlocksConfig {
     texture_duration: Prop<f64>,
     fade_in_out_duration: Prop<f64>,
     flow_speed: Prop<f64>,
-    scaling: Prop<f64>,
+    scaling: Prop<DVec3>,
     block_density: Prop<f64>,
     block_softness: Prop<f64>,
 }
@@ -37,7 +39,7 @@ impl PulsingBlocksConfig {
             texture_duration: NumPropCore::new_slider(20.0, 0.0..30.0, 0.1).into_prop(PropertyInfo::new("Texture Duration")),
             fade_in_out_duration: NumPropCore::new_slider(8.0, 0.0..10.0, 0.05).into_prop(PropertyInfo::new("Fade In/Out Duration")),
             flow_speed: NumPropCore::new_slider(0.7, 0.0..20.0, 0.1).into_prop(PropertyInfo::new("Flow Speed")),
-            scaling: NumPropCore::new_slider(0.07, 0.0..1.0, 0.01).into_prop(PropertyInfo::new("Scaling")),
+            scaling: NumVecPropCore::new_slider(DVec3::repeat(0.07), 0.0..1.0, 0.01).into_prop(PropertyInfo::new("Scaling")),
             block_density: NumPropCore::new_slider(0.7, 0.0..2.0, 0.05).into_prop(PropertyInfo::new("Block Density")),
             block_softness: NumPropCore::new_slider(0.03, 0.0..1.0, 0.01).into_prop(PropertyInfo::new("Block Softness")),
         }
@@ -59,8 +61,7 @@ impl PulsingBlockLayer {
     fn new(config: &PulsingBlocksConfig, texture: TextureLayer, start_t: f64) -> Self {
         let two_tone_config = TwoToneConfig::new(
             (SolidColor::new(palette::named::BLACK.transparent().into()).into_layer(LayerInfo::new("BG")), texture),
-            0.0,
-            1.0,
+            0.0
         );
         two_tone_config.noise_scaling().replace_core(config.scaling.map_core(|x| *x));
         two_tone_config.noise_flow_speed().replace_core(config.flow_speed.map_core(|x| *x));
@@ -82,14 +83,14 @@ impl PulsingBlockLayer {
             transition_progress: transition_progress.clone(),
         }
     }
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> Option<PixelFrame> {
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> Option<PixelFrame> {
         let t_since_start = t - self.start_t;
         if t_since_start > self.duration {
             None
         } else {
             *self.transition_progress.lock() = smoothstep(0.0, self.fade_in_out_duration, t_since_start)
                 - smoothstep(self.duration - self.fade_in_out_duration, self.duration, t_since_start);
-            Some(self.two_tone.next_frame(t, num_pixels))
+            Some(self.two_tone.next_frame(t, ctx))
         }
     }
 }
@@ -140,7 +141,7 @@ impl Component for PulsingBlocks {
 }
 
 impl Texture for PulsingBlocks {
-    fn next_frame(&mut self, t: f64, num_pixels: FrameSize) -> PixelFrame {
+    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
         let texture_delay = 1.0 / *self.config.textures_per_second.read();
         if t - self.last_texture_layer_t > texture_delay {
             self.layers.push(PulsingBlockLayer::new(
@@ -154,7 +155,7 @@ impl Texture for PulsingBlocks {
         let mut frames = vec![];
         self.layers = self.layers.drain(0..)
             .filter_map(|mut layer| {
-                match layer.next_frame(t, num_pixels) {
+                match layer.next_frame(t, ctx) {
                     None => None,
                     Some(frame) => {
                         frames.push(frame);
@@ -166,7 +167,7 @@ impl Texture for PulsingBlocks {
         frames.iter()
             .rev()
             .fold(
-                vec![palette::named::BLACK.transparent().into(); num_pixels as usize],
+                PixelFrame::empty(ctx.num_pixels()),
                 |active, frame| frame.blend(active, BlendMode::Normal)
             )
     }

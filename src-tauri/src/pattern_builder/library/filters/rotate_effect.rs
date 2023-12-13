@@ -8,6 +8,7 @@ use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct RotateEffect {
@@ -49,7 +50,7 @@ impl Component for RotateEffect {
 }
 
 impl Filter for RotateEffect {
-    fn next_frame(&mut self, t: f64, mut active: PixelFrame) -> PixelFrame {
+    fn next_frame(&mut self, t: f64, mut active: PixelFrame, _ctx: &PatternContext) -> PixelFrame {
         let translation: f64 = ((*self.speed.read() % active.len() as f64) * (t % active.len() as f64) + *self.offset.read()) % active.len() as f64;
         let shift = translation.abs() as usize;
         if translation > 0.0 {
@@ -59,19 +60,12 @@ impl Filter for RotateEffect {
         }
         if *self.smoothing.read() {
             let blend = translation.abs().fract() as f32;
-            let mut blended = vec![];
-            if translation > 0.0 {
-                for i in 0..active.len() {
-                    let next = (i + 1) % active.len();
-                    blended.push(active[i].mix(active[next], 1.0 - blend))
-                }
-            } else {
-                for i in 0..active.len() {
-                    let prev = (i + active.len() - 1) % active.len();
-                    blended.push(active[i].premultiply().mix(active[prev].premultiply(), 1.0 - blend).unpremultiply())
-                }
-            }
-            blended
+            let next_index_addition = if translation > 0.0 { 1 } else { active.len() - 1 };
+            (0..active.len()).map(|i| {
+                let next = (i + next_index_addition) % active.len();
+                // Was active[i].premultiply().mix(active[prev].premultiply(), 1.0 - blend).unpremultiply()
+                active[i].mix(active[next], 1.0 - blend)
+            }).collect()
         } else {
             active
         }
