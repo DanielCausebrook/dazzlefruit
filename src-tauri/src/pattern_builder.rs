@@ -11,7 +11,6 @@ use component::data::RandId;
 use crate::pattern_builder::component::data::PixelFrame;
 use crate::pattern_builder::component::property::{PropReadGuard, PropView, PropWriteGuard};
 use crate::pattern_builder::component::layer::texture::{TextureLayer};
-use crate::pattern_builder::component::view_serde::PatternBuilderViewData;
 use crate::pattern_builder::pattern::Pattern;
 use crate::pattern_builder::library::core::empty::{Empty};
 use crate::tauri_events::PixelUpdatePayload;
@@ -71,13 +70,10 @@ impl PatternBuilder {
 #[tauri::command]
 pub async fn get_pattern_config(tauri_state: tauri::State<'_, LockedAppState>) -> Result<String, String> {
     let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
-    let layer_prop = state.pattern_builder.pattern.layer();
-    let root_layer = layer_prop.read();
-    let view_data = PatternBuilderViewData::new(&*root_layer);
-    drop(root_layer);
-    state.pattern_builder.property_map = view_data.generate_property_map();
+    let view = state.pattern_builder.pattern.view();
+    state.pattern_builder.property_map = view.generate_property_map();
     // eprintln!("{}", serde_json::to_string(&view_data).unwrap());
-    serde_json::to_string(&view_data).map_err(|e| e.to_string())
+    serde_json::to_string(&view).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

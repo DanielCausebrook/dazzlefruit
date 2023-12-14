@@ -1,6 +1,6 @@
 use std::iter::repeat_with;
 use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
-use crate::pattern_builder::component::property::component::TexturePropCore;
+use crate::pattern_builder::component::property::layer::TexturePropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;

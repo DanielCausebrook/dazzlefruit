@@ -1,6 +1,5 @@
 use crate::pattern_builder::component::property::PropView;
 
-pub mod view_serde;
 pub mod data;
 mod macros;
 // pub mod shared_component;

@@ -3,7 +3,7 @@ use serde::{Serialize, Serializer};
 use serde::ser::SerializeSeq;
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::filter::FilterLayer;
-use crate::pattern_builder::component::layer::{Layer, LayerInfo};
+use crate::pattern_builder::component::layer::{Layer, LayerInfo, LayerView};
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
 use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::pattern_builder::component::layer::texture_generator::TextureGeneratorLayer;
@@ -50,15 +50,11 @@ impl<T> PropCore for LayerPropCore<T> where T: Layer + Clone {
 
 impl<T> ErasedPropCore for LayerPropCore<T> where T: Layer + Clone {
     fn prop_type_id(&self) -> String {
-        "component".to_string()
+        "layer".to_string()
     }
 
-    fn for_each_child_layer<'a>(&self, func: &mut (dyn FnMut(&dyn Layer) + 'a)) {
-        func(self.0.as_ref())
-    }
-
-    fn for_each_child_layer_mut<'a>(&mut self, func: &mut (dyn FnMut(&mut dyn Layer) + 'a)) {
-        func(self.0.as_mut())
+    fn child_layer_views(&self) -> Vec<LayerView> {
+        vec![self.0.view()]
     }
 
     fn try_update(&mut self, str: &str) -> Result<(), String> {
@@ -66,21 +62,21 @@ impl<T> ErasedPropCore for LayerPropCore<T> where T: Layer + Clone {
     }
 
     fn value_serialize(&self) -> Box<dyn erased_serde::Serialize + '_> {
-        Box::new(ComponentSerializer(&self.0))
+        Box::new(LayerSerializer(&self.0))
     }
 }
 
-struct ComponentSerializer<'a, T> (&'a T) where T: Layer;
+struct LayerSerializer<'a, T> (&'a T) where T: Layer;
 
-impl<T> Serialize for ComponentSerializer<'_, T> where T: Layer {
+impl<T> Serialize for LayerSerializer<'_, T> where T: Layer {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         self.0.info().id().serialize(serializer)
     }
 }
 
-pub struct ComponentVecPropCore<T> (Vec<T>) where T: Layer + Clone;
+pub struct LayerVecPropCore<T> (Vec<T>) where T: Layer + Clone;
 
-impl<T> ComponentVecPropCore<T> where T: Layer + Clone {
+impl<T> LayerVecPropCore<T> where T: Layer + Clone {
     pub fn new() -> Self {
         Self(vec![])
     }
@@ -93,13 +89,13 @@ impl<T> ComponentVecPropCore<T> where T: Layer + Clone {
     }
 }
 
-impl<T> Clone for ComponentVecPropCore<T> where T: Layer + Clone {
+impl<T> Clone for LayerVecPropCore<T> where T: Layer + Clone {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<T> PropCore for ComponentVecPropCore<T> where T: Layer + Clone {
+impl<T> PropCore for LayerVecPropCore<T> where T: Layer + Clone {
     type Value = Vec<T>;
 
     fn read(&self) -> PropRead<Self::Value> {
@@ -123,21 +119,15 @@ impl<T> PropCore for ComponentVecPropCore<T> where T: Layer + Clone {
     }
 }
 
-impl<T> ErasedPropCore for ComponentVecPropCore<T> where T: Layer + Clone {
+impl<T> ErasedPropCore for LayerVecPropCore<T> where T: Layer + Clone {
     fn prop_type_id(&self) -> String {
-        "component-vec".to_string()
+        "layer-vec".to_string()
     }
 
-    fn for_each_child_layer<'a>(&self, func: &mut (dyn FnMut(&dyn Layer) + 'a)) {
-        for component in self.0.iter() {
-            func(component);
-        }
-    }
-
-    fn for_each_child_layer_mut<'a>(&mut self, func: &mut (dyn FnMut(&mut dyn Layer) + 'a)) {
-        for component in self.0.iter_mut() {
-            func(component);
-        }
+    fn child_layer_views(&self) -> Vec<LayerView> {
+        self.0.iter()
+            .map(|layer| LayerView::new(layer))
+            .collect()
     }
 
     fn try_update(&mut self, str: &str) -> Result<(), String> {
@@ -145,14 +135,14 @@ impl<T> ErasedPropCore for ComponentVecPropCore<T> where T: Layer + Clone {
     }
 
     fn value_serialize(&self) -> Box<dyn erased_serde::Serialize + '_> {
-        Box::new(ComponentVecSerializer(&self.0))
+        Box::new(LayerVecSerializer(&self.0))
     }
 }
 
 
-struct ComponentVecSerializer<'a, T> (&'a Vec<T>) where T: Layer;
+struct LayerVecSerializer<'a, T> (&'a Vec<T>) where T: Layer;
 
-impl<T> Serialize for ComponentVecSerializer<'_, T> where T: Layer {
+impl<T> Serialize for LayerVecSerializer<'_, T> where T: Layer {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut seq_ser = serializer.serialize_seq(Some(self.0.len()))?;
         for component in &*self.0 {
@@ -172,13 +162,13 @@ pub trait LayerPropMetadata: 'static {
 }
 
 pub type TexturePropCore = LayerPropCore<TextureLayer>;
-pub type TextureVecPropCore = ComponentVecPropCore<TextureLayer>;
+pub type TextureVecPropCore = LayerVecPropCore<TextureLayer>;
 
 pub type FilterPropCore = LayerPropCore<FilterLayer>;
 
-pub type FilterVecPropCore = ComponentVecPropCore<FilterLayer>;
+pub type FilterVecPropCore = LayerVecPropCore<FilterLayer>;
 
 pub type TextureGeneratorPropCore = LayerPropCore<TextureGeneratorLayer>;
 
-pub type TextureGeneratorVecPropCore = ComponentVecPropCore<TextureGeneratorLayer>;
+pub type TextureGeneratorVecPropCore = LayerVecPropCore<TextureGeneratorLayer>;
 

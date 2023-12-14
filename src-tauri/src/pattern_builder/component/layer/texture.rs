@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use dyn_clone::{clone_trait_object, DynClone};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{BlendMode, PixelFrame};
-use crate::pattern_builder::component::layer::{Layer, LayerInfo};
+use crate::pattern_builder::component::layer::{Layer, LayerInfo, LayerView};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
@@ -68,11 +67,10 @@ impl Layer for TextureLayer {
         &self.info
     }
 
-    fn view_data(&self) -> HashMap<String, Box<dyn erased_serde::Serialize + 'static>> {
-        HashMap::from([
-            ("blend_mode".to_string(), Box::new(*self.blend_mode.read()) as Box<dyn erased_serde::Serialize>),
-            ("opacity".to_string(), Box::new(*self.opacity.read()) as Box<dyn erased_serde::Serialize>),
-        ])
+    fn view(&self) -> LayerView {
+        LayerView::new(self)
+            .add_data("blend_mode", *self.blend_mode.read())
+            .add_data("opacity", *self.opacity.read())
     }
 }
 

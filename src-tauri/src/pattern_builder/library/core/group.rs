@@ -1,16 +1,14 @@
-use std::mem;
 use palette::WithAlpha;
-use serde::{Serialize, Serializer};
-use serde::ser::SerializeSeq;
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
 use crate::pattern_builder::component::layer::filter::{Filter, FilterLayer};
-use crate::pattern_builder::component::layer::{Layer, LayerInfo};
+use crate::pattern_builder::component::layer::{Layer, LayerInfo, LayerView};
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::property::{ErasedPropCore, Prop, PropCore, PropRead, PropView, PropWrite};
+use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
+use crate::pattern_builder::component::property::layer::LayerVecPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
@@ -21,7 +19,7 @@ pub struct Group {
 impl Group {
     pub fn new() -> Self {
         Self {
-            layers: GroupedLayerVecProp::new().into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            layers: LayerVecPropCore::new().into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
         }
     }
 
@@ -77,96 +75,42 @@ enum GroupedLayer {
     Filter(FilterLayer),
 }
 
-impl GroupedLayer {
-    pub fn as_component_ref(&self) -> &dyn Layer {
+impl Component for GroupedLayer {
+    fn view_properties(&self) -> Vec<PropView> {
         match self {
-            GroupedLayer::Texture(ref layer) => layer,
-            GroupedLayer::Filter(ref layer) => layer,
+            GroupedLayer::Texture(l) => l.view_properties(),
+            GroupedLayer::Filter(l) => l.view_properties(),
         }
     }
 
-    pub fn as_component_mut(&mut self) -> &mut dyn Layer {
+    fn detach(&mut self) {
         match self {
-            GroupedLayer::Texture(ref mut layer) => layer,
-            GroupedLayer::Filter(ref mut  layer) => layer,
+            GroupedLayer::Texture(l) => l.detach(),
+            GroupedLayer::Filter(l) => l.detach(),
         }
     }
 }
 
-#[derive(Clone)]
-struct GroupedLayerVecProp(Vec<GroupedLayer>);
-
-impl GroupedLayerVecProp {
-    pub fn new() -> Self {
-        Self(vec![])
-    }
-
-    pub fn fork(&self) -> Self {
-        let mut clone = self.clone();
-        for layer in clone.0.iter_mut() {
-            match layer {
-                GroupedLayer::Texture(layer) => layer.detach(),
-                GroupedLayer::Filter(layer) => layer.detach(),
-            }
-        }
-        clone
-    }
-}
-
-impl PropCore for GroupedLayerVecProp {
-    type Value = Vec<GroupedLayer>;
-
-    fn read(&self) -> PropRead<Self::Value> {
-        PropRead::Ref(&self.0)
-    }
-
-    fn write(&mut self) -> PropWrite<Self::Value> {
-        PropWrite::Ref(&mut self.0)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Ok(mem::replace(&mut self.0, value))
-    }
-
-    fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {
-        Box::new(self.fork())
-    }
-}
-
-impl ErasedPropCore for GroupedLayerVecProp {
-    fn prop_type_id(&self) -> String {
-        "component-vec".to_string()
-    }
-
-    fn for_each_child_layer<'a>(&self, func: &mut (dyn FnMut(&dyn Layer) + 'a)) {
-        for layer in self.0.iter() {
-            func(layer.as_component_ref())
+impl Layer for GroupedLayer {
+    fn layer_type(&self) -> String {
+        match self {
+            GroupedLayer::Texture(l) => l.layer_type(),
+            GroupedLayer::Filter(l) => l.layer_type(),
         }
     }
 
-    fn for_each_child_layer_mut<'a>(&mut self, func: &mut (dyn FnMut(&mut dyn Layer) + 'a)) {
-        for layer in self.0.iter_mut() {
-            func(layer.as_component_mut())
+    fn info(&self) -> &LayerInfo {
+        match self {
+            GroupedLayer::Texture(l) => l.info(),
+            GroupedLayer::Filter(l) => l.info(),
         }
     }
 
-    fn try_update(&mut self, str: &str) -> Result<(), String> {
-        todo!()
-    }
-
-    fn value_serialize(&self) -> Box<dyn erased_serde::Serialize + '_> {
-        Box::new(ComponentVecSerializer(&self.0))
-    }
-}
-
-struct ComponentVecSerializer<'a> (&'a Vec<GroupedLayer>);
-
-impl Serialize for ComponentVecSerializer<'_>{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let mut seq_ser = serializer.serialize_seq(Some(self.0.len()))?;
-        for layer in &*self.0 {
-            seq_ser.serialize_element(&layer.as_component_ref().info().id())?;
+    fn view(&self) -> LayerView {
+        match self {
+            GroupedLayer::Texture(l) => l.view(),
+            GroupedLayer::Filter(l) => l.view(),
         }
-        seq_ser.end()
     }
 }
+

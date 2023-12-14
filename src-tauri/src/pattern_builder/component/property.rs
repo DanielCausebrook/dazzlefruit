@@ -1,6 +1,6 @@
 pub mod raw;
 pub mod num;
-pub mod component;
+pub mod layer;
 pub mod computed;
 pub mod color;
 pub mod string;
@@ -15,7 +15,7 @@ use parking_lot::RwLock;
 use rand::random;
 use serde::ser::SerializeStruct;
 use serde::{Serialize, Serializer};
-use crate::pattern_builder::component::layer::Layer;
+use crate::pattern_builder::component::layer::LayerView;
 use crate::pattern_builder::component::data::{DisplayPane, RandId};
 use crate::pattern_builder::component::property::computed::ComputedPropCore;
 
@@ -288,12 +288,8 @@ impl PropView {
         &self.0.info()
     }
 
-    pub fn for_each_child_component<'a>(&self, mut func: impl FnMut(&dyn Layer) + 'a) {
-        self.0.read_core().for_each_child_layer(&mut func)
-    }
-
-    pub fn for_each_child_component_mut<'a>(&mut self, mut func: impl FnMut(&mut dyn Layer) + 'a) {
-        self.0.write_core().for_each_child_layer_mut(&mut func)
+    pub fn child_layer_views(&self) -> Vec<LayerView> {
+        self.0.read_core().child_layer_views()
     }
 
     pub fn try_update(&mut self, str: &str) -> Result<(), String> {
@@ -335,8 +331,7 @@ pub trait ErasedPropCore: Send + Sync + DynClone {
     fn view_data(&self) -> HashMap<String, Box<dyn erased_serde::Serialize + 'static>> {
         HashMap::new()
     }
-    fn for_each_child_layer<'a>(&self, func: &mut (dyn FnMut(&dyn Layer) + 'a)) {}
-    fn for_each_child_layer_mut<'a>(&mut self, func: &mut (dyn FnMut(&mut dyn Layer) + 'a)) {}
+    fn child_layer_views(&self) -> Vec<LayerView> { vec![] }
     fn try_update(&mut self, str: &str) -> Result<(), String>;
     fn value_serialize(&self) -> Box<dyn erased_serde::Serialize + '_>;
 }
@@ -370,13 +365,6 @@ impl PropertyInfo {
             display_pane: DisplayPane::Config,
         }
     }
-    pub(crate) fn serialize_into<S>(&self, struct_ser: &mut S::SerializeStruct) -> Result<(), S::Error> where S: Serializer  {
-        struct_ser.serialize_field("id", &self.id())?;
-        struct_ser.serialize_field("name", &self.name())?;
-        struct_ser.serialize_field("description", &self.description())?;
-        struct_ser.serialize_field("display_pane", &self.display_pane)?;
-        Ok(())
-    }
     pub fn set_description(mut self, description: &str) -> Self {
         self.description = Some(description.to_string());
         self
@@ -395,11 +383,5 @@ impl PropertyInfo {
         let mut fork = self.clone();
         fork.id = random();
         fork
-    }
-}
-
-impl Serialize for PropertyInfo {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        serializer.serialize_unit()
     }
 }

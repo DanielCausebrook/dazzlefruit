@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use serde::Serialize;
 
 use tauri::async_runtime::{JoinHandle, spawn};
 use tokio::sync::watch;
@@ -6,9 +8,10 @@ use tokio::time::{interval, MissedTickBehavior};
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
+use crate::pattern_builder::component::data::{DisplayPane, PixelFrame, RandId};
+use crate::pattern_builder::component::layer::{Layer, LayerView};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
-use crate::pattern_builder::component::property::component::TexturePropCore;
+use crate::pattern_builder::component::property::layer::TexturePropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
@@ -126,6 +129,10 @@ impl Pattern {
         }
     }
 
+    pub fn view(&self) -> PatternView {
+        PatternView::new(self)
+    }
+
     pub fn layer(&self) -> &Prop<TextureLayer> {
         &self.layer
     }
@@ -202,5 +209,42 @@ impl Component for Pattern {
             self.running,
         );
     }
+}
 
+
+
+#[derive(Serialize)]
+pub struct PatternView {
+    root_id: RandId,
+    components: HashMap<RandId, LayerView>,
+}
+
+impl PatternView {
+    fn new(pattern: &Pattern) -> Self {
+        let root_layer = pattern.layer().read();
+        let mut layers = vec![];
+        let mut current_layers = vec![root_layer.view()];
+        while !current_layers.is_empty() {
+            let mut next_layers = vec![];
+            for current_layer in current_layers {
+                for property in current_layer.property_views() {
+                    next_layers.append(&mut property.child_layer_views());
+                }
+                layers.push(current_layer);
+            }
+            current_layers = next_layers;
+        }
+        Self {
+            root_id: root_layer.info().id(),
+            components: layers.into_iter()
+                .map(|layer_view| (layer_view.info().id(), layer_view))
+                .collect(),
+        }
+    }
+    pub fn generate_property_map(&self) -> HashMap<RandId, PropView> {
+        self.components.values()
+            .flat_map(|layer_config| layer_config.property_views())
+            .map(|prop| (prop.info().id(), prop.clone()))
+            .collect::<HashMap<RandId, PropView>>()
+    }
 }

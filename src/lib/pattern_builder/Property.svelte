@@ -39,13 +39,13 @@
         {#if propConfig.name !== null}
             <div class="header">{propConfig.name}</div>
         {/if}
-        {#if propConfig.type === "component-vec" }
+        {#if propConfig.type === "layer-vec" }
             <div class="value layer-vec">
                 {#each propConfig.value as layerId}
                     <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="{propConfig.display_pane}" />
                 {/each}
             </div>
-        {:else if propConfig.type === "component" }
+        {:else if propConfig.type === "layer" }
             <div class="value layer">
                 <Layer bind:patternBuilderData={patternBuilderData} layerId={propConfig.value} paneType="{propConfig.display_pane}" />
             </div>
