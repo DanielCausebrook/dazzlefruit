@@ -13,6 +13,7 @@
     let ip = "192.168.1.135";
     let tcpPort = 4242;
     let udpPort = 4243;
+    let numPixels = 100;
 
     let message = "";
 
@@ -26,7 +27,7 @@
                 message = reason;
                 setTimeout(() => message = "", 5000);
             });
-        await invoke("init_neopixel", {numPixels: 100})
+        await invoke("init_neopixel", {numPixels:Number(numPixels)})
             .then(() => {
             })
             .catch((reason) => {
@@ -84,6 +85,9 @@
     .df-connection-bar .message:empty {
         display: none;
     }
+    #connect-num-pixels {
+        width: 50px;
+    }
 </style>
 
 <div class="df-connection-bar">
@@ -91,6 +95,8 @@
         <form class="connect-form" on:submit|preventDefault={connect}>
             <label for="connect-ip">IP:</label>
             <input id="connect-ip" size="15" class="input-small" bind:value={ip} />&nbsp;&nbsp;
+            <label for="connect-num-pixels">Pixels:</label>
+            <input type="number" step="50" min="0" id="connect-num-pixels" class="input-small" bind:value={numPixels} />&nbsp;&nbsp;
             <button type="submit" class="button-small">Connect</button>
         </form>
         <div class="spacer"></div>
