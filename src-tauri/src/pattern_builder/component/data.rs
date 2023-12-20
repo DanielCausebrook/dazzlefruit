@@ -91,7 +91,7 @@ impl IntoIterator for PixelFrame {
     }
 }
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 #[serde(try_from="String", into="String")]
 pub struct RandId(u64);
 

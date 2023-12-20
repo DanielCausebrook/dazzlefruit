@@ -1,9 +1,7 @@
 use std::mem;
-use serde::{Serialize, Serializer};
-use serde::ser::SerializeSeq;
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::filter::FilterLayer;
-use crate::pattern_builder::component::layer::{Layer, LayerInfo, LayerView};
+use crate::pattern_builder::component::layer::{Layer, LayerView};
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
 use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::pattern_builder::component::layer::texture_generator::TextureGeneratorLayer;
@@ -62,15 +60,7 @@ impl<T> ErasedPropCore for LayerPropCore<T> where T: Layer + Clone {
     }
 
     fn value_serialize(&self) -> Box<dyn erased_serde::Serialize + '_> {
-        Box::new(LayerSerializer(&self.0))
-    }
-}
-
-struct LayerSerializer<'a, T> (&'a T) where T: Layer;
-
-impl<T> Serialize for LayerSerializer<'_, T> where T: Layer {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        self.0.info().id().serialize(serializer)
+        Box::new(self.0.info().id())
     }
 }
 
@@ -135,30 +125,8 @@ impl<T> ErasedPropCore for LayerVecPropCore<T> where T: Layer + Clone {
     }
 
     fn value_serialize(&self) -> Box<dyn erased_serde::Serialize + '_> {
-        Box::new(LayerVecSerializer(&self.0))
+        Box::new(self.0.iter().map(|l| l.info().id()).collect::<Vec<_>>())
     }
-}
-
-
-struct LayerVecSerializer<'a, T> (&'a Vec<T>) where T: Layer;
-
-impl<T> Serialize for LayerVecSerializer<'_, T> where T: Layer {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let mut seq_ser = serializer.serialize_seq(Some(self.0.len()))?;
-        for component in &*self.0 {
-            seq_ser.serialize_element(&component.info().id())?;
-        }
-        seq_ser.end()
-    }
-}
-
-pub trait LayerPropMetadata: 'static {
-    type Layer: Layer + Clone;
-    type Component;
-
-    fn layer_ref_as_value(layer: &Box<Self::Layer>) -> &Self::Component;
-    fn layer_mut_as_value(layer: &mut Box<Self::Layer>) -> &mut Self::Component;
-    fn component_into_layer(component: Self::Component, info: LayerInfo) -> Self::Layer;
 }
 
 pub type TexturePropCore = LayerPropCore<TextureLayer>;

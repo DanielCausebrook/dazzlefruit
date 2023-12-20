@@ -13,7 +13,7 @@ use nalgebra_glm::{DVec3, smoothstep};
 use palette::{Lighten, Mix, WithAlpha};
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
-use tokio::sync::{RwLock, RwLockWriteGuard};
+use tokio::sync::{RwLock};
 use pattern_builder::component::layer::LayerInfo;
 
 use pattern_builder::component::layer::texture::Texture;
@@ -22,6 +22,9 @@ use crate::neopixel_controller::NeopixelController;
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, PixelFrame};
 use crate::pattern_builder::component::layer::filter::Filter;
+use crate::pattern_builder::component::layer::Layer;
+use crate::pattern_builder::component::layer::layer_stack::LayerStack;
+use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, VOID};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::layer::TexturePropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -68,15 +71,6 @@ impl AppState {
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-#[tauri::command]
-async fn set_color(color_str: String, tauri_state: tauri::State<'_, LockedAppState>) -> Result<(), String> {
-    let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
-    let color = Rgb::from_str(color_str.as_str())
-        .map_err(|e| e.to_string())?;
-    state.pattern_builder.set_texture(SolidColor::new(color.into()).into_layer(LayerInfo::new("Color")));
-    Ok(())
 }
 
 fn get_birds_pattern() -> TextureLayer {
@@ -184,9 +178,9 @@ impl Pulse {
     pub fn new(texture: TextureLayer) -> Self {
         Self {
             texture: TexturePropCore::new(texture).into_prop(PropertyInfo::new("Texture").set_display_pane(DisplayPane::Tree)),
-            period: NumPropCore::new_slider(2.0, 0.0..10.0, 0.1).into_prop(PropertyInfo::new("Period")),
+            period: NumPropCore::new_slider(3.0, 0.0..10.0, 0.1).into_prop(PropertyInfo::new("Period")),
             width: NumPropCore::new_slider(5.0, 1.0..20.0, 0.2).into_prop(PropertyInfo::new("Width")),
-            smoothness: NumPropCore::new_slider(10.0, 0.0..10.0, 0.01).into_prop(PropertyInfo::new("Smoothness")),
+            smoothness: NumPropCore::new_slider(3.0, 0.0..10.0, 0.01).into_prop(PropertyInfo::new("Smoothness")),
         }
     }
 }
@@ -216,7 +210,7 @@ impl Texture for Pulse {
         let pulse_pos = 0.5 * (triangle_sin(*self.smoothness.read(), *self.period.read(), t as f32) + 1.0) * (ctx.num_pixels() as f32 - *self.width.read());
         let step1 = [pulse_pos - 0.5, pulse_pos + 0.5];
         let step2 = [pulse_pos + *self.width.read() - 0.5, pulse_pos + *self.width.read() + 0.5];
-        self.texture.write().next_frame(t, ctx).into_iter()
+        self.texture.write().next(None, t, ctx).into_iter()
             .zip(0..)
             .map(|(pixel, x)| {
                 let amount = smoothstep(step1[0], step1[1], x as f32) - smoothstep(step2[0], step2[1], x as f32);
@@ -232,6 +226,31 @@ impl Texture for Pulse {
     }
 }
 
+fn get_test_pattern_3() -> LayerStack<(), PixelFrame> {
+    let mut stack = LayerStack::new(&VOID, &PIXEL_FRAME);
+    stack.push(Wave::new(
+        ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer(LayerInfo::new("Color")),
+        ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer(LayerInfo::new("Color"))
+    ).into_layer(LayerInfo::new("Wave")));
+    let mut mask_stack = LayerStack::new(&VOID, &PIXEL_FRAME);
+    let pulse = Pulse::new(Empty::new_texture_layer());
+    pulse.texture.replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
+    mask_stack.push(pulse.into_layer(LayerInfo::new("Pulse")));
+    mask_stack.push(PersistenceEffectConfig::new(2.0).into_filter().into_layer(LayerInfo::new("Persistence Effect")));
+
+    let sparkles = SparklesConfig::default();
+    sparkles.texture().replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
+
+    mask_stack.push(sparkles.into_texture().into_layer(LayerInfo::new("Sparkles")));
+    let mask_group_layer = Group::from(mask_stack).into_layer(LayerInfo::new("Mask"));
+    mask_group_layer.blend_mode().try_replace_value(BlendMode::AlphaMask).unwrap();
+    stack.push(mask_group_layer);
+
+    // group.add_texture(Repeater::new(25, Pulse::new(SolidColor::new(palette::named::WHITE.into()))));
+
+    stack
+}
+
 fn main() {
     // 10.0.1.43
 
@@ -241,32 +260,11 @@ fn main() {
                 connection: None,
                 app_handle: app.handle().clone(),
                 neopixel_controller: None,
-                pattern_builder: PatternBuilder::new(app.handle().clone(), 100),
+                pattern_builder: PatternBuilder::new(app.handle().clone(), 350),
             };
             // state.pattern_builder.set_layer(get_birds_pattern());
             // state.pattern_builder.set_layer(get_test_pattern_2());
-            let group = Group::new();
-            group.add_texture(Wave::new(
-                ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer(LayerInfo::new("Color")),
-                ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer(LayerInfo::new("Color"))
-            ).into_layer(LayerInfo::new("Wave")));
-            let mask_group = Group::new();
-            let pulse = Pulse::new(Empty::new_texture_layer());
-            pulse.texture.replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
-            mask_group.add_texture(pulse.into_layer(LayerInfo::new("Pulse")));
-            mask_group.add_filter(PersistenceEffectConfig::new(2.0).into_filter().into_layer(LayerInfo::new("Persistence Effect")));
-            
-            let sparkles = SparklesConfig::default();
-            sparkles.texture().replace_core(RawPropCore::new(SolidColor::new(palette::named::WHITE.into()).into_layer(LayerInfo::new("Color"))));
-            
-            mask_group.add_texture(sparkles.into_texture().into_layer(LayerInfo::new("Sparkles")));
-            let mask_group_layer = mask_group.into_layer(LayerInfo::new("Mask"));
-            mask_group_layer.blend_mode().try_replace_value(BlendMode::AlphaMask).unwrap();
-            group.add_texture(mask_group_layer);
-
-            // group.add_texture(Repeater::new(25, Pulse::new(SolidColor::new(palette::named::WHITE.into()))));
-
-            state.pattern_builder.set_texture(group.into_layer(LayerInfo::new("Group")));
+            state.pattern_builder.set_texture(get_test_pattern_3());
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())
         })
@@ -277,7 +275,6 @@ fn main() {
             neopixel_controller::init_neopixel,
             pattern_builder::get_pattern_config,
             pattern_builder::update_property,
-            set_color
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

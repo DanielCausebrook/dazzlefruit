@@ -33,8 +33,9 @@ type AnyPropView =
     PropView<NumPropMetadata> |
     PropView<NumVecPropMetadata> |
     PropView<ColorPropMetadata> |
-    PropView<ComponentPropMetadata> |
-    PropView<ComponentVecPropMetadata> |
+    PropView<LayerPropMetadata> |
+    PropView<LayerVecPropMetadata> |
+    PropView<LayerStackPropMetadata> |
     PropView<UnsupportedPropMetadata>;
 type PropView<T extends PropMetadata> = {
     id: RandId,
@@ -69,15 +70,27 @@ type ColorPropMetadata = {
     value: number[],
     data: {},
 }
-type ComponentPropMetadata = {
-    type: 'component',
+type LayerPropMetadata = {
+    type: 'layer',
     value: RandId,
     data: {},
 };
-type ComponentVecPropMetadata = {
-    type: 'component-vec',
+type LayerVecPropMetadata = {
+    type: 'layer-vec',
     value: RandId[],
     data: {},
+};
+type LayerStackPropMetadata = {
+    type: 'layer-vec',
+    value: RandId[],
+    data: {
+        errors: {
+            layer_id: RandId|null,
+            from_type_name: string,
+            into_type_name: string
+        }[]
+
+    },
 };
 type UnsupportedPropMetadata = {
     type: 'computed'|'raw',

@@ -5,6 +5,7 @@ use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
 use crate::pattern_builder::component::layer::filter::Filter;
+use crate::pattern_builder::component::layer::Layer;
 use crate::pattern_builder::component::property::layer::{TexturePropCore};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::computed::ComputedPropCore;
@@ -59,7 +60,7 @@ impl SparklesConfig {
 
 impl Default for SparklesConfig {
     fn default() -> Self {
-        Self::new(Empty::new_texture_layer(), 6.0, 1.5)
+        Self::new(Empty::new_texture_layer(), 6.0, 2.0)
     }
 }
 
@@ -108,7 +109,7 @@ impl Texture for Sparkles {
         let delta_t = (t - self.last_t).max(0.0);
         self.last_t = t;
         self.weights.resize(ctx.num_pixels(), 1.0);
-        let texture_frame = self.config.texture.write().next_frame(t, ctx);
+        let texture_frame = self.config.texture.write().next(None, t, ctx);
         let num_sparkles = if let Ok(poisson) =
             Poisson::new(delta_t * *self.config.density.read() * ctx.num_pixels() as f64) {
             poisson.sample(&mut rand::thread_rng()) + self.num_sparkles_remainder

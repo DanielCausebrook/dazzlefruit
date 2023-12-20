@@ -8,8 +8,18 @@
     export let propConfig: AnyPropView;
 
     let color: string|null;
+    let outputError = null;
+    let errorMap = new Map();
     if (propConfig.type === "color") {
-        $: color = rgbToHex(propConfig.value[0], propConfig.value[1], propConfig.value[2])
+        color = rgbToHex(propConfig.value[0], propConfig.value[1], propConfig.value[2])
+    } else if (propConfig.type === "layer-stack") {
+        for (const error of propConfig.data.errors) {
+            if (error.layer_id !== null) {
+                errorMap.set(error.layer_id, error);
+            } else {
+                outputError = error;
+            }
+        }
     }
 
     async function update() {
@@ -44,6 +54,19 @@
                 {#each propConfig.value as layerId}
                     <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="{propConfig.display_pane}" />
                 {/each}
+            </div>
+        {:else if propConfig.type === "layer-stack" }
+            <div class="value layer-stack">
+                {#each propConfig.value as layerId}
+                    {@const error = errorMap.get(layerId) ?? null}
+                    {#if error !== null }
+                        <div class="layer-stack-type-error">Cannot convert {error.from_type_name} into {error.into_type_name}</div>
+                    {/if}
+                    <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="{propConfig.display_pane}" />
+                {/each}
+                {#if outputError !== null }
+                    <div class="layer-stack-type-error">Cannot convert {outputError.from_type_name} into {outputError.into_type_name}</div>
+                {/if}
             </div>
         {:else if propConfig.type === "layer" }
             <div class="value layer">
@@ -145,12 +168,19 @@
         gap: 5px;
       }
 
-      &.layer-vec {
+      &.layer-vec, &.layer-stack {
         display: flex;
         flex-flow: column nowrap;
         //border-left: 1px solid hsl(0, 0%, 8%);
         padding-left: 0;
         gap: 5px;
+
+        > .layer-stack-type-error {
+          padding: 1px 5px;
+          font-size: 80%;
+          background: hsla(0, 80%, 50%, 30%);
+          color: hsl(0, 80%, 80%);
+        }
       }
 
       &.layer {

@@ -5,6 +5,7 @@
     import Layer from "./pattern_builder/Layer.svelte";
     import {rgbToHex} from "./pattern_builder/rgb-to-hex";
     import {PatternBuilder} from "./pattern_builder/pattern-builder";
+    import Property from "./pattern_builder/Property.svelte";
 
     let id = "something";
     let unlistenPixelUpdate;
@@ -17,8 +18,6 @@
             .then((pattern_builder_str: string) => {
                 console.log("OK");
                 patternBuilderData = new PatternBuilder(JSON.parse(pattern_builder_str));
-                console.log("Selected ID: ", patternBuilderData.getSelectedLayerId());
-                console.log("Root ID: ", patternBuilderData.getRootId());
             });
         unlistenPixelUpdate = await listen('pixel-update', (event: Event<{id: number, pixel_data: [[number]]}>) => {
             let colors = [];
@@ -45,7 +44,7 @@
             <div class="header">Structure</div>
             <div class="main">
                 {#if patternBuilderData !== null}
-                    <Layer bind:patternBuilderData={patternBuilderData} layerId={patternBuilderData.getRootId()} paneType="Tree" />
+                    <Property bind:patternBuilderData={patternBuilderData} propConfig={patternBuilderData.getRootStack()} />
                 {/if}
             </div>
         </div>

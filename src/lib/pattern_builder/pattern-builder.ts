@@ -1,17 +1,18 @@
 export class PatternBuilder {
     rootId: RandId;
+    rootStack: PropView<LayerStackPropMetadata>;
     layerConfigs: Map<RandId, AnyComponent>;
     selectedId: RandId|null;
 
     constructor(data) {
-        this.rootId = data.root_id;
+        this.rootStack = data.root_stack;
         this.layerConfigs = new Map<RandId, AnyComponent>(Object.entries(data.components));
         console.log(this.layerConfigs);
         this.selectedId = null;
     }
 
-    getRootId(): RandId {
-        return this.rootId;
+    getRootStack(): PropView<LayerStackPropMetadata> {
+        return this.rootStack;
     }
 
     getLayerConfig(layerId: RandId): AnyComponent|null {

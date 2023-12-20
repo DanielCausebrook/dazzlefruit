@@ -2,6 +2,8 @@ use dyn_clone::{clone_trait_object, DynClone};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{BlendMode, PixelFrame};
 use crate::pattern_builder::component::layer::{Layer, LayerInfo, LayerView};
+use crate::pattern_builder::component::layer::io_type::IOType;
+use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, PIXEL_FRAME_OPTION};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
@@ -59,8 +61,18 @@ impl Component for TextureLayer {
 }
 
 impl Layer for TextureLayer {
+    type Input = Option<PixelFrame>;
+    type Output = PixelFrame;
     fn layer_type(&self) -> String {
         self.layer_type.clone()
+    }
+
+    fn input_type(&self) -> &IOType<Self::Input> {
+        &PIXEL_FRAME_OPTION
+    }
+
+    fn output_type(&self) -> &IOType<Self::Output> {
+        &PIXEL_FRAME
     }
 
     fn info(&self) -> &LayerInfo {
@@ -72,13 +84,15 @@ impl Layer for TextureLayer {
             .add_data("blend_mode", *self.blend_mode.read())
             .add_data("opacity", *self.opacity.read())
     }
-}
 
-impl Texture for TextureLayer {
-    fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
+    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
         let frame = self.texture.next_frame(t, ctx);
         self.cache = Some(frame.clone());
-        frame
+        if let Some(active) = input {
+            frame.blend(active, *self.blend_mode().read())
+        } else {
+            frame
+        }
     }
 }
 

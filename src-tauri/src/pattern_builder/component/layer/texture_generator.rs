@@ -2,8 +2,11 @@ use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{Layer, LayerInfo};
+use crate::pattern_builder::component::layer::io_type::IOType;
+use crate::pattern_builder::component::layer::standard_types::{TEXTURE_LAYER, VOID};
 use crate::pattern_builder::component::property::PropView;
 use crate::pattern_builder::component::layer::texture::TextureLayer;
+use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct TextureGeneratorLayer {
@@ -37,18 +40,28 @@ impl Component for TextureGeneratorLayer {
     }
 }
 
-impl TextureGenerator for TextureGeneratorLayer {
-    fn next_texture(&mut self) -> TextureLayer {
-        self.generator.next_texture()
-    }
-}
-
 impl Layer for TextureGeneratorLayer {
+    type Input = ();
+    type Output = TextureLayer;
+
     fn layer_type(&self) -> String {
         self.layer_type.clone()
     }
+
+    fn input_type(&self) -> &IOType<Self::Input> {
+        &VOID
+    }
+
+    fn output_type(&self) -> &IOType<Self::Output> {
+        &TEXTURE_LAYER
+    }
+
     fn info(&self) -> &LayerInfo {
         &self.info
+    }
+
+    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
+        self.generator.next_texture()
     }
 }
 

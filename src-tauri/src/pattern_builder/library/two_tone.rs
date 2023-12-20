@@ -6,6 +6,7 @@ use rand::random;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{DisplayPane, PixelFrame};
+use crate::pattern_builder::component::layer::Layer;
 use crate::pattern_builder::component::property::{PropertyInfo};
 use crate::pattern_builder::component::property::layer::{TexturePropCore};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
@@ -107,8 +108,8 @@ impl Component for TwoTone {
 
 impl Texture for TwoTone {
     fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
-        let colors0 = self.config.textures.0.write().next_frame(t, ctx);
-        let colors1 = self.config.textures.1.write().next_frame(t, ctx);
+        let colors0 = self.config.textures.0.write().next(None, t, ctx);
+        let colors1 = self.config.textures.1.write().next(None, t, ctx);
         (0..ctx.num_pixels())
             .map(|i| {
                 let pos = ctx.position_map().pos(i).unwrap();

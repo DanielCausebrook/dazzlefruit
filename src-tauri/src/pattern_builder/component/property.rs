@@ -5,6 +5,7 @@ pub mod computed;
 pub mod color;
 pub mod string;
 pub mod num_vec;
+pub mod layer_stack;
 
 use std::collections::HashMap;
 use std::mem;

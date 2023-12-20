@@ -9,6 +9,7 @@ use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
 use crate::pattern_builder::math_functions::skew_sin;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::layer::Layer;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
@@ -68,8 +69,8 @@ impl Component for Wave {
 
 impl Texture for Wave {
     fn next_frame(&mut self, t: f64, ctx: &PatternContext) -> PixelFrame {
-        let fg = self.fg_texture.write().next_frame(t, ctx);
-        let bg = self.bg_texture.write().next_frame(t, ctx);
+        let fg = self.fg_texture.write().next(None, t, ctx);
+        let bg = self.bg_texture.write().next(None, t, ctx);
         let t = t as f32;
         (0..ctx.num_pixels()).map(|x_int| {
             let x = x_int as f32;

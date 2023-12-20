@@ -6,14 +6,14 @@ use parking_lot::Mutex;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::{BlendMode, DisplayPane, PixelFrame};
-use crate::pattern_builder::component::layer::LayerInfo;
+use crate::pattern_builder::component::layer::{Layer, LayerInfo};
 use crate::pattern_builder::component::property::layer::TextureGeneratorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::computed::ComputedPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::layer::texture::{Texture, TextureLayer};
-use crate::pattern_builder::component::layer::texture_generator::{TextureGenerator, TextureGeneratorLayer};
+use crate::pattern_builder::component::layer::texture_generator::TextureGeneratorLayer;
 use crate::pattern_builder::component::property::num_vec::NumVecPropCore;
 use crate::pattern_builder::library::core::SolidColor;
 use crate::pattern_builder::library::two_tone::{TwoTone, TwoToneConfig};
@@ -146,7 +146,7 @@ impl Texture for PulsingBlocks {
         if t - self.last_texture_layer_t > texture_delay {
             self.layers.push(PulsingBlockLayer::new(
                 &self.config,
-                self.config.textures.write().next_texture(),
+                self.config.textures.write().next((), t, ctx),
                 self.last_texture_layer_t + texture_delay
             ));
             let lag = t - self.last_texture_layer_t - texture_delay;

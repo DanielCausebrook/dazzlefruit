@@ -2,6 +2,8 @@ use dyn_clone::{clone_trait_object, DynClone};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::data::PixelFrame;
 use crate::pattern_builder::component::layer::{Layer, LayerInfo};
+use crate::pattern_builder::component::layer::io_type::IOType;
+use crate::pattern_builder::component::layer::standard_types::PIXEL_FRAME;
 use crate::pattern_builder::component::property::PropView;
 use crate::pattern_builder::pattern_context::PatternContext;
 
@@ -44,12 +46,27 @@ impl Filter for FilterLayer {
 }
 
 impl Layer for FilterLayer {
+    type Input = PixelFrame;
+    type Output = PixelFrame;
+
     fn layer_type(&self) -> String {
         self.layer_type.clone()
     }
 
+    fn input_type(&self) -> &IOType<Self::Input> {
+        &PIXEL_FRAME
+    }
+
+    fn output_type(&self) -> &IOType<Self::Output> {
+        &PIXEL_FRAME
+    }
+
     fn info(&self) -> &LayerInfo {
         &self.info
+    }
+
+    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
+        self.filter.next_frame(t, input, ctx)
     }
 }
 

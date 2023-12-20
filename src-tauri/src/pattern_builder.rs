@@ -9,10 +9,10 @@ use tokio_stream::wrappers::WatchStream;
 use crate::{AppState, LockedAppState};
 use component::data::RandId;
 use crate::pattern_builder::component::data::PixelFrame;
-use crate::pattern_builder::component::property::{PropReadGuard, PropView, PropWriteGuard};
-use crate::pattern_builder::component::layer::texture::{TextureLayer};
+use crate::pattern_builder::component::layer::layer_stack::LayerStack;
+use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, VOID};
+use crate::pattern_builder::component::property::PropView;
 use crate::pattern_builder::pattern::Pattern;
-use crate::pattern_builder::library::core::empty::{Empty};
 use crate::tauri_events::PixelUpdatePayload;
 
 pub mod library;
@@ -32,7 +32,7 @@ pub struct PatternBuilder {
 impl PatternBuilder {
     pub fn new(app_handle: AppHandle, num_pixels: usize) -> PatternBuilder {
         let id = random();
-        let pattern = Pattern::new(Empty::new_texture_layer(), num_pixels);
+        let pattern = Pattern::new(LayerStack::new(&VOID, &PIXEL_FRAME), num_pixels);
         let mut update_receiver = WatchStream::new(pattern.get_frame_receiver());
         Self {
             id,
@@ -50,15 +50,7 @@ impl PatternBuilder {
         }
     }
 
-    pub fn read_texture(&self) -> PropReadGuard<'_, TextureLayer> {
-        self.pattern.layer().read()
-    }
-
-    pub fn write_texture(&self) -> PropWriteGuard<'_, TextureLayer> {
-        self.pattern.layer().write()
-    }
-
-    pub fn set_texture(&mut self, texture: TextureLayer) {
+    pub fn set_texture(&mut self, texture: LayerStack<(), PixelFrame>) {
         self.pattern.layer().try_replace_value(texture).unwrap();
     }
 
@@ -72,7 +64,7 @@ pub async fn get_pattern_config(tauri_state: tauri::State<'_, LockedAppState>) -
     let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
     let view = state.pattern_builder.pattern.view();
     state.pattern_builder.property_map = view.generate_property_map();
-    // eprintln!("{}", serde_json::to_string(&view_data).unwrap());
+    // eprintln!("{}", serde_json::to_string(&view).unwrap());
     serde_json::to_string(&view).map_err(|e| e.to_string())
 }
 
