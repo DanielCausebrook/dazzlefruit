@@ -1,10 +1,8 @@
 use std::mem;
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::layer::filter::FilterLayer;
 use crate::pattern_builder::component::layer::{Layer, LayerView};
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
 use crate::pattern_builder::component::layer::texture::TextureLayer;
-use crate::pattern_builder::component::layer::texture_generator::TextureGeneratorLayer;
 
 pub struct LayerPropCore<T>(Box<T>) where T: Layer + Clone;
 
@@ -131,12 +129,3 @@ impl<T> ErasedPropCore for LayerVecPropCore<T> where T: Layer + Clone {
 
 pub type TexturePropCore = LayerPropCore<TextureLayer>;
 pub type TextureVecPropCore = LayerVecPropCore<TextureLayer>;
-
-pub type FilterPropCore = LayerPropCore<FilterLayer>;
-
-pub type FilterVecPropCore = LayerVecPropCore<FilterLayer>;
-
-pub type TextureGeneratorPropCore = LayerPropCore<TextureGeneratorLayer>;
-
-pub type TextureGeneratorVecPropCore = LayerVecPropCore<TextureGeneratorLayer>;
-

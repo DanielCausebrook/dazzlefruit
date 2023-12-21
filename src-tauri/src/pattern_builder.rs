@@ -7,8 +7,8 @@ use tokio::sync::RwLockWriteGuard;
 use tokio::sync::watch::Receiver;
 use tokio_stream::wrappers::WatchStream;
 use crate::{AppState, LockedAppState};
-use component::data::RandId;
-use crate::pattern_builder::component::data::PixelFrame;
+use component::RandId;
+use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, VOID};
 use crate::pattern_builder::component::property::PropView;
@@ -50,11 +50,11 @@ impl PatternBuilder {
         }
     }
 
-    pub fn set_texture(&mut self, texture: LayerStack<(), PixelFrame>) {
+    pub fn set_texture(&mut self, texture: LayerStack<(), Frame<ColorPixel>>) {
         self.pattern.layer().try_replace_value(texture).unwrap();
     }
 
-    pub fn get_pattern_update_receiver(&self) -> Receiver<PixelFrame> {
+    pub fn get_pattern_update_receiver(&self) -> Receiver<Frame<ColorPixel>> {
         self.pattern.get_frame_receiver()
     }
 }

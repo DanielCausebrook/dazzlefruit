@@ -1,23 +1,27 @@
-use palette::LinSrgba;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{DisplayPane, Pixel, PixelFrame};
+use crate::pattern_builder::component::frame::{ColorPixel, Frame};
+use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo};
+use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::pattern_builder::component::property::color::ColorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::PropertyInfo;
-use crate::pattern_builder::component::layer::texture::Texture;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct SolidColor {
-    color: Prop<LinSrgba>,
+    color: Prop<ColorPixel>,
 }
 
 impl SolidColor {
-    pub fn new(color: Pixel) -> Self {
+    pub fn new(color: ColorPixel) -> Self {
         Self {
             color: ColorPropCore::new(color).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
         }
+    }
+
+    pub fn into_layer(self, layer_info: LayerInfo) -> TextureLayer {
+        TextureLayer::new(self, layer_info)
     }
 }
 
@@ -31,8 +35,10 @@ impl Component for SolidColor {
     }
 }
 
-impl Texture for SolidColor {
-    fn next_frame(&mut self, _t: f64, ctx: &PatternContext) -> PixelFrame {
+impl LayerCore for SolidColor {
+    type Input = ();
+    type Output = Frame<ColorPixel>;
+    fn next(&mut self, _: (), _t: f64, ctx: &PatternContext) -> Frame<ColorPixel> {
         vec![self.color.read().clone(); ctx.num_pixels()].into()
     }
 }

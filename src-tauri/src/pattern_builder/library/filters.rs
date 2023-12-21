@@ -1,2 +1,2 @@
 pub mod rotate_effect;
-pub mod persistence_effect;
+pub mod alpha_mask;

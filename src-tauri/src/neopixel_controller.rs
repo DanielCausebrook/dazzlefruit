@@ -2,8 +2,7 @@ use tokio::sync::{RwLockWriteGuard, watch};
 
 use tauri::async_runtime::{JoinHandle, spawn};
 use crate::{AppState, LockedAppState};
-use crate::pattern_builder::component::data::PixelFrame;
-
+use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pico_connection::packet_types::{TcpPacketType, UdpPacketType};
 use crate::pico_connection::PicoConnectionHandle;
 
@@ -26,8 +25,8 @@ impl Drop for NeopixelController {
 
 impl NeopixelControllerData {
 
-    async fn display(&self, mut pixel_data: PixelFrame) {
-        pixel_data.resize_with_transparent(self.num_pixels as usize);
+    async fn display(&self, mut pixel_data: Frame<ColorPixel>) {
+        pixel_data.resize_with_empty(self.num_pixels as usize);
         let bytes = pixel_data.iter()
             .flat_map(|color| {
                 let color_pre = color.premultiply();
@@ -46,7 +45,7 @@ impl NeopixelControllerData {
 }
 
 impl NeopixelController {
-    pub async fn new(pico_connection: PicoConnectionHandle, num_pixels: u16, mut pixel_update_receiver: watch::Receiver<PixelFrame>) -> Result<Self, String> {
+    pub async fn new(pico_connection: PicoConnectionHandle, num_pixels: u16, mut pixel_update_receiver: watch::Receiver<Frame<ColorPixel>>) -> Result<Self, String> {
         let data = NeopixelControllerData{ pico_connection, num_pixels };
         let controller = Self {
             data: data.clone(),

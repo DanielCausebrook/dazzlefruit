@@ -3,7 +3,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 use itertools::{FoldWhile, Itertools};
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
-use crate::pattern_builder::component::data::RandId;
+use crate::pattern_builder::component::RandId;
 use crate::pattern_builder::component::layer::io_type::{ErasedIOType, ErasedIOValue, IOType, NoMappingError};
 use crate::pattern_builder::component::layer::{Layer, LayerInfo, LayerView};
 use crate::pattern_builder::pattern_context::PatternContext;
@@ -56,8 +56,8 @@ impl<I, O> Clone for LayerStack<I, O> where I: 'static, O: 'static {
     fn clone(&self) -> Self {
         Self {
             stack: self.stack.clone(),
-            input_type: self.input_type.clone(),
-            output_type: self.output_type.clone(),
+            input_type: self.input_type,
+            output_type: self.output_type,
         }
     }
 }

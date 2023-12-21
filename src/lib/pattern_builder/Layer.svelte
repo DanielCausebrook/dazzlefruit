@@ -2,11 +2,12 @@
     import Property from "./Property.svelte";
     import {
         IconAdjustments,
-        IconFile,
-        IconColorFilter,
         IconFolderOpen,
         IconTexture,
-        IconHexagonalPrism, IconHexagon, IconFilter, IconHexagonFilled
+        IconHexagonalPrism,
+        IconFilter,
+        IconQuestionMark,
+        IconArrowBigRight
     } from "@tabler/icons-svelte";
     import type {PatternBuilder} from "./pattern-builder";
 
@@ -22,12 +23,16 @@
         patternBuilderData = patternBuilderData;
     }}>
         <div class="layer-icon">
-            {#if layerConfig.type === 'texture'}
+            {#if layerConfig.type === 'Generic'}
+                <IconQuestionMark stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
+            {:else if layerConfig.type === 'Texture'}
                 <IconTexture stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.type === 'filter'}
+            {:else if layerConfig.type === 'Filter'}
                 <IconFilter stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.type === 'group'}
+            {:else if layerConfig.type === 'Group'}
                 <IconFolderOpen stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
+            {:else if layerConfig.type === 'Transformer'}
+                <IconArrowBigRight stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
             {:else if layerConfig.type === 'texture-generator'}
                 <IconHexagonalPrism stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
             {/if}

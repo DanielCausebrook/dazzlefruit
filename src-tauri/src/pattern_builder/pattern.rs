@@ -7,9 +7,9 @@ use tokio::sync::watch;
 use tokio::time::{interval, MissedTickBehavior};
 
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::data::{DisplayPane, PixelFrame, RandId};
-use crate::pattern_builder::component::layer::LayerView;
+use crate::pattern_builder::component::{Component, RandId};
+use crate::pattern_builder::component::frame::{ColorPixel, Frame};
+use crate::pattern_builder::component::layer::{DisplayPane, LayerView};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
@@ -19,13 +19,13 @@ use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::pattern_context::PatternContext;
 use crate::pattern_builder::pattern_context::position_map::PositionMap;
 
-const FPS: f32 = 30.0;
+const FPS: f32 = 60.0;
 
 struct AnimationRunnerTask {
-    layer: Prop<LayerStack<(), PixelFrame>>,
+    layer: Prop<LayerStack<(), Frame<ColorPixel>>>,
     num_pixels: Prop<usize>,
     position_map: Prop<PositionMap<'static>>,
-    update_sender: watch::Sender<PixelFrame>,
+    update_sender: watch::Sender<Frame<ColorPixel>>,
     running: Prop<bool>,
     speed: Prop<f64>,
     t: watch::Sender<f64>,
@@ -84,7 +84,7 @@ impl AnimationRunnerTask {
             let pixel_data = self.layer.write().next((), *self.t.borrow(), &ctx)
                 .unwrap_or_else(|err| {
                     eprintln!("Failed to evaluate stack: {:?}", err);
-                    PixelFrame::empty(num_pixels)
+                    Frame::<ColorPixel>::empty(num_pixels)
                 });
             self.update_sender.send(pixel_data).unwrap();
         }
@@ -93,10 +93,10 @@ impl AnimationRunnerTask {
 
 pub struct Pattern {
     animation_runner_handle: Option<JoinHandle<()>>,
-    frame_receiver: watch::Receiver<PixelFrame>,
+    frame_receiver: watch::Receiver<Frame<ColorPixel>>,
     t: watch::Receiver<f64>,
     last_instant: watch::Receiver<Instant>,
-    layer: Prop<LayerStack<(), PixelFrame>>,
+    layer: Prop<LayerStack<(), Frame<ColorPixel>>>,
     num_pixels: Prop<usize>,
     position_map: Prop<PositionMap<'static>>,
     running: Prop<bool>,
@@ -104,12 +104,12 @@ pub struct Pattern {
 }
 
 impl Pattern {
-    pub fn new(mut layer: LayerStack<(), PixelFrame>, num_pixels: usize) -> Self {
+    pub fn new(mut layer: LayerStack<(), Frame<ColorPixel>>, num_pixels: usize) -> Self {
         let (update_sender, update_receiver) = watch::channel(
             layer.next((), 0.0, &PatternContext::new(num_pixels))
                 .unwrap_or_else(|err| {
                     eprintln!("Failed to evaluate stack: {:?}", err);
-                    PixelFrame::empty(num_pixels)
+                    Frame::<ColorPixel>::empty(num_pixels)
                 })
         );
         let (t_send, t_recv) = watch::channel(0.0);
@@ -141,7 +141,7 @@ impl Pattern {
         PatternView::new(self)
     }
 
-    pub fn layer(&self) -> &Prop<LayerStack<(), PixelFrame>> {
+    pub fn layer(&self) -> &Prop<LayerStack<(), Frame<ColorPixel>>> {
         &self.layer
     }
 
@@ -149,7 +149,7 @@ impl Pattern {
         &self.running
     }
 
-    pub fn get_frame_receiver(&self) -> watch::Receiver<PixelFrame> {
+    pub fn get_frame_receiver(&self) -> watch::Receiver<Frame<ColorPixel>> {
         self.frame_receiver.clone()
     }
 

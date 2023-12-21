@@ -1,15 +1,16 @@
 use std::mem;
 use std::str::FromStr;
 use erased_serde::Serialize;
-use palette::{LinSrgba, Srgb};
+use palette::Srgb;
 use palette::rgb::Rgb;
+use crate::pattern_builder::component::frame::ColorPixel;
 use crate::pattern_builder::component::property::{PropCore, ErasedPropCore, PropRead, PropWrite};
 
 #[derive(Clone)]
-pub struct ColorPropCore(LinSrgba);
+pub struct ColorPropCore(ColorPixel);
 
 impl ColorPropCore {
-    pub fn new(color: LinSrgba) -> Self {
+    pub fn new(color: ColorPixel) -> Self {
         Self(color)
     }
     pub fn fork(&self) -> Self {
@@ -18,7 +19,7 @@ impl ColorPropCore {
 }
 
 impl PropCore for ColorPropCore {
-    type Value = LinSrgba;
+    type Value = ColorPixel;
 
     fn read(&self) -> PropRead<Self::Value> {
         PropRead::Ref(&self.0)
