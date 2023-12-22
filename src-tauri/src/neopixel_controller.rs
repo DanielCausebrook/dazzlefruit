@@ -1,14 +1,17 @@
-use tokio::sync::{RwLockWriteGuard, watch};
+use std::sync::Arc;
+use tokio::sync::{broadcast, Mutex, RwLockReadGuard, RwLockWriteGuard};
 
 use tauri::async_runtime::{JoinHandle, spawn};
 use crate::{AppState, LockedAppState};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
+use crate::pattern_builder::component::RandId;
 use crate::pico_connection::packet_types::{TcpPacketType, UdpPacketType};
 use crate::pico_connection::PicoConnectionHandle;
 
 #[derive(Clone)]
 struct NeopixelControllerData {
     pico_connection: PicoConnectionHandle,
+    selected_pattern_id: Arc<Mutex<Option<RandId>>>,
     num_pixels: u16,
 }
 
@@ -42,18 +45,34 @@ impl NeopixelControllerData {
             &bytes
         ).await;
     }
+
+    pub async fn show_pattern_id(&self, pattern_id: RandId) {
+        *self.selected_pattern_id.lock().await = Some(pattern_id);
+    }
+
+    pub async fn show_none(&self) {
+        *self.selected_pattern_id.lock().await = None;
+        self.display(Frame::empty(self.num_pixels as usize)).await;
+    }
 }
 
 impl NeopixelController {
-    pub async fn new(pico_connection: PicoConnectionHandle, num_pixels: u16, mut pixel_update_receiver: watch::Receiver<Frame<ColorPixel>>) -> Result<Self, String> {
-        let data = NeopixelControllerData{ pico_connection, num_pixels };
+    pub async fn new(pico_connection: PicoConnectionHandle, num_pixels: u16, mut pattern_update_receiver: broadcast::Receiver<(RandId, Frame<ColorPixel>)>) -> Result<Self, String> {
+        let data = NeopixelControllerData{
+            pico_connection,
+            selected_pattern_id: Arc::new(Mutex::new(None)),
+            num_pixels
+        };
         let controller = Self {
             data: data.clone(),
             listener_handle: spawn(async move {
                 loop {
-                    pixel_update_receiver.changed().await.unwrap();
-                    let pixel_data = pixel_update_receiver.borrow().clone();
-                    data.display(pixel_data).await;
+                    let (pattern_id, frame) = pattern_update_receiver.recv().await.unwrap();
+                    let selected_lock = data.selected_pattern_id.lock().await;
+                    if Some(pattern_id) == *selected_lock {
+                        data.display(frame).await;
+                    }
+                    drop(selected_lock);
                 }
             }),
         };
@@ -75,7 +94,24 @@ pub async fn init_neopixel(num_pixels: u16, tauri_state: tauri::State<'_, Locked
     state.neopixel_controller = Some(NeopixelController::new(
         state.connection.clone().ok_or("Not connected to a pico.")?,
         num_pixels,
-        state.pattern_builder.get_pattern_update_receiver()
+        state.pattern_builder.pattern_update_receiver()
     ).await?);
     Ok(())
 }
+
+#[tauri::command]
+pub async fn set_neopixel_pattern(pattern_id: Option<RandId>, tauri_state: tauri::State<'_, LockedAppState>) -> Result<(), String> {
+    let state: RwLockReadGuard<AppState> = tauri_state.0.read().await;
+
+    let controller = state.neopixel_controller.as_ref().ok_or("Pico not connected!")?;
+    if let Some(pattern_id) = pattern_id {
+        if state.pattern_builder.pattern(pattern_id).is_none() {
+            return Err(format!("Pattern with id {} not found", pattern_id));
+        }
+        controller.data.show_pattern_id(pattern_id).await;
+    } else {
+        controller.data.show_none().await;
+    }
+    Ok(())
+}
+

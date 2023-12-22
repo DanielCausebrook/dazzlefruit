@@ -52,7 +52,8 @@ h1 {
 }
 
 input,
-button {
+button,
+select {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -83,7 +84,8 @@ button:active {
 }
 
 input,
-button {
+button,
+select {
   outline: none;
 }
 
@@ -137,18 +139,17 @@ button {
   }
 
   input,
-  button {
+  button,
+  select {
     color: #d0d0d0;
     background-color: #0f0f0f98;
   }
+
   button:active {
     background-color: #0f0f0f69;
   }
 }
 
-.df-pattern-builder {
-  padding: 10px;
-}
 .df-pixel-preview {
   position: relative;
   flex: 1 1 auto;

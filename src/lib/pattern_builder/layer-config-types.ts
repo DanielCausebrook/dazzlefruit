@@ -1,31 +1,31 @@
 type RandId = string;
 
 type BlendMode = 'Normal'|'AlphaMask';
-type ComponentTypeId = 'texture'|'filter'|'texture-generator';
+type LayerTypeId = 'texture'|'filter'|'texture-generator';
 
 type NumRange = {
     start: number,
     end: number,
 }
 
-type AnyComponent = Component<TextureComponentMetadata> |
-    Component<FilterComponentMetadata> |
-    Component<TextureGeneratorComponentMetadata>;
-type Component<T extends ComponentMetadata> = {
+type AnyLayer = Layer<TextureLayerMetadata> |
+    Layer<FilterLayerMetadata> |
+    Layer<TextureGeneratorLayerMetadata>;
+type Layer<T extends LayerMetadata> = {
     id: RandId,
-    type: ComponentTypeId,
+    type: LayerTypeId,
     name: PropView<UnsupportedPropMetadata>,
     description: PropView<UnsupportedPropMetadata>,
     data: T,
     properties: [AnyPropView],
 }
-type ComponentMetadata = Object;
-type TextureComponentMetadata = {
+type LayerMetadata = Object;
+type TextureLayerMetadata = {
     blend_mode: BlendMode,
     opacity: number,
 }
-type FilterComponentMetadata = {};
-type TextureGeneratorComponentMetadata = {};
+type FilterLayerMetadata = {};
+type TextureGeneratorLayerMetadata = {};
 
 type DisplayPane = 'Tree'|'Config'|'TreeAndConfig';
 

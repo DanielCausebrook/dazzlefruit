@@ -1,14 +1,14 @@
 <script lang="ts">
-  import Connect from "./lib/Connect.svelte";
-  import Debug from "./lib/Debug.svelte";
   import ConnectionBar from "./lib/ConnectionBar.svelte";
-  import NeopixelController from "./lib/NeopixelController.svelte";
   import {onDestroy, onMount} from "svelte";
   import {listen} from "@tauri-apps/api/event";
   import PatternBuilder from "./lib/PatternBuilder.svelte";
+  import type {PatternBuilderView} from "./lib/pattern_builder/pattern-builder-view.js";
 
   let connection: {ip: string} | null = null;
   let unlistenOpen, unlistenClose;
+
+  let patternBuilder: PatternBuilderView|null;
 
   onMount(async () => {
     unlistenOpen = await listen('connection-open', (event: Event<{ip: string}>) => {
@@ -23,14 +23,12 @@
     unlistenOpen();
     unlistenClose();
   });
-
-
 </script>
 <div class="df-app">
   <main class="df-main">
-    <PatternBuilder />
+    <PatternBuilder bind:patternBuilder={patternBuilder} />
   </main>
-  <ConnectionBar connection={connection} />
+  <ConnectionBar bind:connection={connection} bind:patternBuilder={patternBuilder} />
 </div>
 
 <style>

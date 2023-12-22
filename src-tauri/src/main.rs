@@ -17,21 +17,22 @@ use pattern_builder::component::layer::LayerInfo;
 
 use crate::neopixel_controller::NeopixelController;
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
+use crate::pattern_builder::component::frame::{Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::LayerCore;
-use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, SCALAR_FRAME, VOID};
+use crate::pattern_builder::component::layer::standard_types::SCALAR_FRAME;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::library::color_range::ColorRange;
+use crate::pattern_builder::library::core::solid_color::SolidColor;
 use crate::pattern_builder::library::filters::alpha_mask::AlphaMask;
 use crate::pattern_builder::library::scalar_filters::persistence::Persistence;
 use crate::pattern_builder::library::scalar_textures::sparkles::Sparkles;
 use crate::pattern_builder::library::transformers::scalar_to_dual_texture::ScalarToDualTexture;
 use crate::pattern_builder::library::waves::Wave;
 use crate::pattern_builder::math_functions::triangle_sin;
+use crate::pattern_builder::pattern::Pattern;
 use crate::pattern_builder::pattern_context::PatternContext;
 use crate::pattern_builder::PatternBuilder;
 use crate::pico_connection::PicoConnectionHandle;
@@ -55,12 +56,6 @@ impl AppState {
     fn debug_println(&self, message: &str) {
         self.app_handle.emit_all("debug-println", DebugMessagePayload{ message: message.parse().unwrap() }).unwrap();
     }
-}
-
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
 #[derive(Clone)]
@@ -118,24 +113,43 @@ impl LayerCore for Pulse {
     }
 }
 
-fn get_test_pattern_3() -> LayerStack<(), Frame<ColorPixel>> {
-    let mut stack = LayerStack::new(&VOID, &PIXEL_FRAME);
+fn get_test_pattern() -> Pattern {
+    let pattern = Pattern::new("Test Pattern", 350, 60.0);
 
-    stack.push(Wave::new().into_layer(LayerInfo::new("Waves")));
+    pattern.stack().write().push(Wave::new().into_layer(LayerInfo::new("Waves")));
 
     let transformer = ScalarToDualTexture::new();
     transformer.texture_a().write().push(ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer(LayerInfo::new("Color")));
     transformer.texture_b().write().push(ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer(LayerInfo::new("Color")));
-    stack.push(transformer.into_layer(LayerInfo::new("Dual Texture")));
+    pattern.stack().write().push(transformer.into_layer(LayerInfo::new("Dual Texture")));
 
     let mask = AlphaMask::new();
     mask.stack().write().push(Pulse::new(4.0, 10.0).into_layer(LayerInfo::new("Pulse")));
-    mask.stack().write().push(Persistence::new(5.0).into_layer(LayerInfo::new("Persistence"), &SCALAR_FRAME));
+    mask.stack().write().push(Persistence::new(5.0).into_layer(&SCALAR_FRAME, LayerInfo::new("Persistence")));
     mask.stack().write().push(Sparkles::new(7.0, 5.0).into_layer(LayerInfo::new("Sparkles")));
+    pattern.stack().write().push(mask.into_layer(LayerInfo::new("Alpha Mask")));
 
-    stack.push(mask.into_layer(LayerInfo::new("Alpha Mask")));
+    pattern
+}
 
-    stack
+fn get_test_pattern_2() -> Pattern {
+    let pattern = Pattern::new("Simple Test Pattern", 350, 60.0);
+
+    // pattern.stack().write().push(Wave::new().into_layer(LayerInfo::new("Waves")));
+    //
+    // let transformer = ScalarToDualTexture::new();
+    // transformer.texture_a().write().push(ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer(LayerInfo::new("Color")));
+    // transformer.texture_b().write().push(ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer(LayerInfo::new("Color")));
+    // pattern.stack().write().push(transformer.into_layer(LayerInfo::new("Dual Texture")));
+    pattern.stack().write().push(SolidColor::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer(LayerInfo::new("Color")));
+
+    let mask = AlphaMask::new();
+    mask.stack().write().push(Pulse::new(4.0, 10.0).into_layer(LayerInfo::new("Pulse")));
+    mask.stack().write().push(Persistence::new(5.0).into_layer(&SCALAR_FRAME, LayerInfo::new("Persistence")));
+    mask.stack().write().push(Sparkles::new(7.0, 5.0).into_layer(LayerInfo::new("Sparkles")));
+    pattern.stack().write().push(mask.into_layer(LayerInfo::new("Alpha Mask")));
+
+    pattern
 }
 
 fn main() {
@@ -147,20 +161,20 @@ fn main() {
                 connection: None,
                 app_handle: app.handle().clone(),
                 neopixel_controller: None,
-                pattern_builder: PatternBuilder::new(app.handle().clone(), 350),
+                pattern_builder: PatternBuilder::new(app.handle().clone()),
             };
-            // state.pattern_builder.set_layer(get_birds_pattern());
-            // state.pattern_builder.set_layer(get_test_pattern_2());
-            state.pattern_builder.set_texture(get_test_pattern_3());
+            state.pattern_builder.load_pattern(get_test_pattern());
+            state.pattern_builder.load_pattern(get_test_pattern_2());
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            greet,
             pico_connection::connect,
             pico_connection::disconnect,
             neopixel_controller::init_neopixel,
-            pattern_builder::get_pattern_config,
+            neopixel_controller::set_neopixel_pattern,
+            pattern_builder::view_open_patterns,
+            pattern_builder::view_pattern,
             pattern_builder::update_property,
         ])
         .run(tauri::generate_context!())

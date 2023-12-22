@@ -9,43 +9,42 @@
         IconQuestionMark,
         IconArrowBigRight
     } from "@tabler/icons-svelte";
-    import type {PatternBuilder} from "./pattern-builder";
+    import {type PatternBuilderView, PatternView} from "./pattern-builder-view";
 
-    export let patternBuilderData: PatternBuilder;
+    export let pattern: PatternView;
     export let layerId: RandId;
 
-    let layerConfig: Component = patternBuilderData.getLayerConfig(layerId);
+    let layerView: Layer = pattern.getLayerView(layerId);
     export let paneType: "Tree"|"Config";
 </script>
-<div class="df-layer {patternBuilderData.selectedId === layerId && paneType === 'Tree'? 'selected' : ''}">
+<div class="df-layer {pattern.selectedLayerId === layerId && paneType === 'Tree'? 'selected' : ''}">
     <div class="header" on:click={() => {
-        patternBuilderData.setSelectedLayer(layerId);
-        patternBuilderData = patternBuilderData;
+        pattern.selectedLayerId = layerId;
     }}>
         <div class="layer-icon">
-            {#if layerConfig.type === 'Generic'}
-                <IconQuestionMark stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.type === 'Texture'}
-                <IconTexture stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.type === 'Filter'}
-                <IconFilter stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.type === 'Group'}
-                <IconFolderOpen stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.type === 'Transformer'}
-                <IconArrowBigRight stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
-            {:else if layerConfig.type === 'texture-generator'}
-                <IconHexagonalPrism stroke={patternBuilderData.selectedId === layerId ? 2 : 1}/>
+            {#if layerView.type === 'Generic'}
+                <IconQuestionMark stroke={pattern.selectedLayerId === layerId ? 2 : 1}/>
+            {:else if layerView.type === 'Texture'}
+                <IconTexture stroke={pattern.selectedLayerId === layerId ? 2 : 1}/>
+            {:else if layerView.type === 'Filter'}
+                <IconFilter stroke={pattern.selectedLayerId === layerId ? 2 : 1}/>
+            {:else if layerView.type === 'Group'}
+                <IconFolderOpen stroke={pattern.selectedLayerId === layerId ? 2 : 1}/>
+            {:else if layerView.type === 'Transformer'}
+                <IconArrowBigRight stroke={pattern.selectedLayerId === layerId ? 2 : 1}/>
+            {:else if layerView.type === 'texture-generator'}
+                <IconHexagonalPrism stroke={pattern.selectedLayerId === layerId ? 2 : 1}/>
             {/if}
         </div>
-        <span>{layerConfig.name.value}</span>
+        <span>{layerView.name.value}</span>
         <div class="config-icon">
             <IconAdjustments size=20 stroke=1 color="hsl(0, 0%, 80%)"/>
         </div>
     </div>
     <div class="properties">
-        {#each layerConfig.properties as property}
+        {#each layerView.properties as property}
             {#if property.display_pane === 'TreeAndConfig' || (paneType === 'Tree' && property.display_pane === 'Tree') || (paneType === 'Config' && property.display_pane === 'Config')}
-                <Property bind:patternBuilderData={patternBuilderData} propConfig={property} />
+                <Property bind:pattern={pattern} propConfig={property} />
             {/if}
         {/each}
     </div>

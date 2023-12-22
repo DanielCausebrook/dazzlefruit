@@ -2,9 +2,9 @@
     import Layer from "./Layer.svelte";
     import {invoke} from "@tauri-apps/api/tauri";
     import {rgbToHex} from "./rgb-to-hex";
-    import type {PatternBuilder} from "./pattern-builder";
+    import {PatternView} from "./pattern-builder-view";
 
-    export let patternBuilderData: PatternBuilder;
+    export let pattern: PatternView;
     export let propConfig: AnyPropView;
 
     let color: string|null;
@@ -22,26 +22,20 @@
         }
     }
 
-    async function update() {
-        await invoke("update_property", {id:propConfig.id, value:JSON.stringify(propConfig.value)})
-            .then(() => {
-                console.log("OK");
-                // message = "Connection Success!";
-            })
-            .catch((reason) => {
-                console.log(reason);
-            });
+    async function updateWith(valueStr) {
+        try {
+            await invoke("update_property", {patternId:pattern.info.id, propId:propConfig.id, value:valueStr});
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    async function updateStringify() {
+        await updateWith(JSON.stringify(propConfig.value));
     }
 
     async function updateColor() {
-        await invoke("update_property", {id:propConfig.id, value:color})
-            .then(() => {
-                console.log("OK");
-                // message = "Connection Success!";
-            })
-            .catch((reason) => {
-                console.log(reason);
-            });
+        await updateWith(color);
     }
 </script>
 {#if propConfig.type !== "raw"}
@@ -52,7 +46,7 @@
         {#if propConfig.type === "layer-vec" }
             <div class="value layer-vec">
                 {#each propConfig.value as layerId}
-                    <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="{propConfig.display_pane}" />
+                    <Layer bind:pattern={pattern} layerId={layerId} paneType="{propConfig.display_pane}" />
                 {/each}
             </div>
         {:else if propConfig.type === "layer-stack" }
@@ -62,7 +56,7 @@
                     {#if error !== null }
                         <div class="layer-stack-type-error">Cannot convert {error.from_type_name} into {error.into_type_name}</div>
                     {/if}
-                    <Layer bind:patternBuilderData={patternBuilderData} layerId={layerId} paneType="{propConfig.display_pane}" />
+                    <Layer bind:pattern={pattern} layerId={layerId} paneType="{propConfig.display_pane}" />
                 {/each}
                 {#if outputError !== null }
                     <div class="layer-stack-type-error">Cannot convert {outputError.from_type_name} into {outputError.into_type_name}</div>
@@ -70,7 +64,7 @@
             </div>
         {:else if propConfig.type === "layer" }
             <div class="value layer">
-                <Layer bind:patternBuilderData={patternBuilderData} layerId={propConfig.value} paneType="{propConfig.display_pane}" />
+                <Layer bind:pattern={pattern} layerId={propConfig.value} paneType="{propConfig.display_pane}" />
             </div>
         {:else if propConfig.type === "num"}
             <div class="value input">
@@ -81,7 +75,7 @@
                             min="{propConfig.data.slider.range.start}"
                             max="{propConfig.data.slider.range.end}"
                             bind:value={propConfig.value}
-                            on:input={update}
+                            on:input={updateStringify}
                     />
                     <input
                             type="number"
@@ -89,13 +83,13 @@
                             min="{propConfig.data.slider.range.start}"
                             max="{propConfig.data.slider.range.end}"
                             bind:value={propConfig.value}
-                            on:change={update}
+                            on:change={updateStringify}
                     />
                 {:else}
                     <input
                             type="number"
                             bind:value={propConfig.value}
-                            on:change={update}
+                            on:change={updateStringify}
                     />
                 {/if}
             </div>
@@ -109,7 +103,7 @@
                                 min="{propConfig.data.sliders[i].range.start}"
                                 max="{propConfig.data.sliders[i].range.end}"
                                 bind:value={propConfig.value[i]}
-                                on:input={update}
+                                on:input={updateStringify}
                         />
                         <input
                                 type="number"
@@ -117,13 +111,13 @@
                                 min="{propConfig.data.sliders[i].range.start}"
                                 max="{propConfig.data.sliders[i].range.end}"
                                 bind:value={propConfig.value[i]}
-                                on:change={update}
+                                on:change={updateStringify}
                         />
                     {:else}
                         <input
                                 type="number"
                                 bind:value={propConfig.value[i]}
-                                on:change={update}
+                                on:change={updateStringify}
                         />
                     {/if}
                 </div>
@@ -133,7 +127,7 @@
                 <input
                         type="text"
                         bind:value={propConfig.value}
-                        on:change={update}
+                        on:change={updateStringify}
                 />
             </div>
         {:else if propConfig.type === "color"}

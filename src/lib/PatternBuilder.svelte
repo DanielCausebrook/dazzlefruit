@@ -1,104 +1,86 @@
 <script lang="ts">
     import {invoke} from "@tauri-apps/api/tauri"
-    import {onDestroy, onMount} from "svelte";
-    import {listen} from "@tauri-apps/api/event";
-    import Layer from "./pattern_builder/Layer.svelte";
-    import {rgbToHex} from "./pattern_builder/rgb-to-hex";
-    import {PatternBuilder} from "./pattern_builder/pattern-builder";
-    import Property from "./pattern_builder/Property.svelte";
+    import {onMount} from "svelte";
+    import {PatternBuilderView} from "./pattern_builder/pattern-builder-view";
+    import Pattern from "./pattern_builder/Pattern.svelte";
 
-    let id = "something";
-    let unlistenPixelUpdate;
-    let pixelColors: [string] = [];
-    let patternBuilderData: PatternBuilder|null = null;
+    export let patternBuilder: PatternBuilderView|null;
 
+    let patternView = null;
+    $: patternBuilder?.getPatternView(patternBuilder.selectedPatternId)
+        .then(result => {
+            patternView = result;
+        });
 
     onMount(async () => {
-        invoke("get_pattern_config", {})
-            .then((pattern_builder_str: string) => {
-                console.log("OK");
-                patternBuilderData = new PatternBuilder(JSON.parse(pattern_builder_str));
-            });
-        unlistenPixelUpdate = await listen('pixel-update', (event: Event<{id: number, pixel_data: [[number]]}>) => {
-            let colors = [];
-            for (const pixel of event.payload.pixel_data) {
-                colors.push(`rgba(${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${pixel[3]/2.55}%)`);
-            }
-            pixelColors = colors;
-        });
-    });
-
-    onDestroy(async () => {
-        unlistenPixelUpdate();
+        let openPatternsInfo = JSON.parse(await invoke("view_open_patterns", {}));
+        patternBuilder = new PatternBuilderView(openPatternsInfo);
+        patternBuilder.selectedPatternId = patternBuilder.getPatternsInfo()[0].id;
     });
 </script>
-<div id="pattern-builder-{id}" class="df-pattern-builder">
-    <h2>Pattern Builder</h2>
-    <div class="df-pixel-preview">
-        {#each pixelColors as pixel}
-            <span style="background: {pixel};"></span>
+<div class="df-pattern-builder">
+    <div class="pattern-tabs">
+        {#each patternBuilder?.getPatternsInfo() ?? [] as patternInfo}
+            <div
+                    class="tab {patternBuilder.selectedPatternId === patternInfo.id ? 'active' : ''}"
+                    on:click={() => { patternBuilder.selectedPatternId = patternInfo.id }}
+            >{patternInfo.name}</div>
         {/each}
     </div>
-    <div class="main">
-        <div class="tree">
-            <div class="header">Structure</div>
-            <div class="main">
-                {#if patternBuilderData !== null}
-                    <Property bind:patternBuilderData={patternBuilderData} propConfig={patternBuilderData.getRootStack()} />
-                {/if}
-            </div>
-        </div>
-        {#if patternBuilderData?.selectedId ?? null !== null}
-            <div class="config">
-                <div class="header">Layer Configuration</div>
-                <div class="main">
-                    {#key patternBuilderData.selectedId}
-                        <Layer bind:patternBuilderData={patternBuilderData} layerId={patternBuilderData.getSelectedLayerId()} paneType="Config" />
-                    {/key}
-                </div>
-            </div>
-        {/if}
+    <div class="pattern-view">
+        {#key patternView}
+            {#if patternView !== null }
+                <Pattern pattern="{patternView}" />
+            {/if}
+        {/key}
     </div>
 </div>
 <style lang="scss">
-    h2 {
-      text-align: center;
-    }
     .df-pattern-builder {
       flex: 1 1 auto;
-      display: flex;
-      flex-flow: column nowrap;
-      max-width: 1000px;
-      overflow: clip;
-      > .main {
-        flex: 1 1 auto;
+      display: grid;
+      grid:
+        "pattern-tabs" 40px
+        "pattern-view" 1fr
+        / 1fr;
+      align-items: stretch;
+      justify-items: stretch;
+
+      > .pattern-tabs {
+        grid-area: pattern-tabs;
         display: flex;
         flex-flow: row nowrap;
-        text-align: left;
-        overflow: clip;
-        > * {
-          overflow: auto;
-          border: 2px solid hsl(0, 0%, 10%);
-          &.tree {
-            flex: 0 1 300px;
-          }
-          &.config {
-            flex: 2 2 auto;
+        gap: 2px;
+        padding: 3px 10px 0 10px;
+        border-bottom: 1px solid hsl(0, 0%, 30%);
+
+        > .tab {
+          display: flex;
+          flex-flow: row nowrap;
+          align-items: center;
+          justify-items: center;
+          padding: 3px 15px;
+          cursor: pointer;
+          color: hsl(0, 0%, 75%);
+
+          &:hover {
+            background: hsla(0, 0%, 0%, 20%);
+            color: inherit;
           }
 
-          > .header {
-            padding: 5px 10px;
-            background: hsl(0, 0%, 13%);
-            color: hsl(0, 0%, 70%);
-            font-weight: bold;
-          }
-          > .main {
-            padding: 5px;
+          &.active {
+            border-bottom: 3px solid hsl(240, 80%, 70%);
+            margin-bottom: -1px;
+            padding-bottom: 1px;
+            color: inherit;
           }
         }
       }
-      > .df-pixel-preview {
-        flex: 0 0 auto;
+      > .pattern-view {
+        grid-area: pattern-view;
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: center;
       }
     }
 </style>

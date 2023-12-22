@@ -1,17 +1,13 @@
 use std::collections::HashMap;
 use futures::StreamExt;
-use rand::random;
+use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri::async_runtime::{JoinHandle, spawn};
-use tokio::sync::RwLockWriteGuard;
-use tokio::sync::watch::Receiver;
+use tokio::sync::{broadcast, RwLockReadGuard, RwLockWriteGuard};
 use tokio_stream::wrappers::WatchStream;
 use crate::{AppState, LockedAppState};
 use component::RandId;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
-use crate::pattern_builder::component::layer::layer_stack::LayerStack;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, VOID};
-use crate::pattern_builder::component::property::PropView;
 use crate::pattern_builder::pattern::Pattern;
 use crate::tauri_events::PixelUpdatePayload;
 
@@ -22,56 +18,95 @@ pub mod pattern_context;
 pub mod pattern;
 
 pub struct PatternBuilder {
-    id: u64,
-    num_pixels: usize,
-    pattern: Pattern,
-    pixel_updater_handle: JoinHandle<()>,
-    property_map: HashMap<RandId, PropView>,
+    open_patterns: HashMap<RandId, OpenPattern>,
+    pattern_ordering: Vec<RandId>,
+    pattern_update_sender: broadcast::Sender<(RandId, Frame<ColorPixel>)>,
+    app_handle: AppHandle,
 }
 
 impl PatternBuilder {
-    pub fn new(app_handle: AppHandle, num_pixels: usize) -> PatternBuilder {
-        let id = random();
-        let pattern = Pattern::new(LayerStack::new(&VOID, &PIXEL_FRAME), num_pixels);
-        let mut update_receiver = WatchStream::new(pattern.get_frame_receiver());
+    pub fn new(app_handle: AppHandle) -> PatternBuilder {
         Self {
-            id,
-            num_pixels,
+            open_patterns: HashMap::new(),
+            pattern_ordering: vec![],
+            pattern_update_sender: broadcast::channel(100).0,
+            app_handle,
+        }
+    }
+
+    pub fn load_pattern(&mut self, pattern: Pattern) {
+        let app_handle = self.app_handle.clone();
+        let mut update_receiver = WatchStream::new(pattern.get_frame_receiver());
+        let id = pattern.id();
+        let update_sender = self.pattern_update_sender.clone();
+        let open_pattern = OpenPattern {
             pixel_updater_handle: spawn(async move {
                 while let Some(pixel_data) = update_receiver.next().await {
+                    let _ = update_sender.send((id, pixel_data.clone()));
                     app_handle.emit_all(
                         "pixel-update",
                         PixelUpdatePayload { id, pixel_data: pixel_data.into_srgba_components() },
                     ).unwrap();
                 }
             }),
-            pattern: pattern,
-            property_map: HashMap::new(),
-        }
+            pattern,
+        };
+        self.pattern_ordering.push(open_pattern.pattern.id());
+        self.open_patterns.insert(open_pattern.pattern.id(), open_pattern);
     }
 
-    pub fn set_texture(&mut self, texture: LayerStack<(), Frame<ColorPixel>>) {
-        self.pattern.layer().try_replace_value(texture).unwrap();
+    pub fn pattern(&self, id: RandId) -> Option<&Pattern> {
+        self.open_patterns.get(&id).map(|open_pattern| &open_pattern.pattern)
     }
 
-    pub fn get_pattern_update_receiver(&self) -> Receiver<Frame<ColorPixel>> {
-        self.pattern.get_frame_receiver()
+    pub fn pattern_mut(&mut self, id: RandId) -> Option<&mut Pattern> {
+        self.open_patterns.get_mut(&id).map(|open_pattern| &mut open_pattern.pattern)
+    }
+
+    pub fn pattern_update_receiver(&self) -> broadcast::Receiver<(RandId, Frame<ColorPixel>)> {
+        self.pattern_update_sender.subscribe()
+    }
+}
+
+struct OpenPattern {
+    pattern: Pattern,
+    pixel_updater_handle: JoinHandle<()>,
+}
+
+impl Drop for OpenPattern {
+    fn drop(&mut self) {
+        self.pixel_updater_handle.abort();
     }
 }
 
 #[tauri::command]
-pub async fn get_pattern_config(tauri_state: tauri::State<'_, LockedAppState>) -> Result<String, String> {
+pub async fn view_open_patterns(tauri_state: tauri::State<'_, LockedAppState>) -> Result<String, String> {
+    let state: RwLockReadGuard<AppState> = tauri_state.0.read().await;
+    let p_b = &state.pattern_builder;
+    #[derive(Serialize)]
+    struct PatternInfo { id: RandId, name: String }
+    serde_json::to_string(
+        &p_b.pattern_ordering.iter()
+            .map(|id| p_b.open_patterns.get(id).unwrap())
+            .map(|open_pattern| PatternInfo { id: open_pattern.pattern.id(), name: open_pattern.pattern.name() })
+            .collect::<Vec<_>>()
+    ).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn view_pattern(id: RandId, tauri_state: tauri::State<'_, LockedAppState>) -> Result<String, String> {
     let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
-    let view = state.pattern_builder.pattern.view();
-    state.pattern_builder.property_map = view.generate_property_map();
+    let view = state.pattern_builder
+        .pattern_mut(id).ok_or(format!("Unknown pattern id {}", id))?.view();
     // eprintln!("{}", serde_json::to_string(&view).unwrap());
     serde_json::to_string(&view).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn update_property(id: RandId, value: String, tauri_state: tauri::State<'_, LockedAppState>) -> Result<(), String> {
+pub async fn update_property(pattern_id: RandId, prop_id: RandId, value: String, tauri_state: tauri::State<'_, LockedAppState>) -> Result<(), String> {
     let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
-    let property = state.pattern_builder.property_map.get_mut(&id).ok_or("Unknown property id")?;
-    property.try_update(value.as_str())?;
-    Ok(())
+    state.pattern_builder.open_patterns
+        .get_mut(&pattern_id).ok_or(format!("Unknown pattern id {}", pattern_id))?
+        .pattern
+        .try_update_prop(prop_id, value)
 }

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use rand::random;
 use serde::Serialize;
 
 use tauri::async_runtime::{JoinHandle, spawn};
@@ -11,6 +12,7 @@ use crate::pattern_builder::component::{Component, RandId};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerView};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
+use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, VOID};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -19,9 +21,7 @@ use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::pattern_context::PatternContext;
 use crate::pattern_builder::pattern_context::position_map::PositionMap;
 
-const FPS: f32 = 60.0;
-
-struct AnimationRunnerTask {
+struct PatternRunnerTask {
     layer: Prop<LayerStack<(), Frame<ColorPixel>>>,
     num_pixels: Prop<usize>,
     position_map: Prop<PositionMap<'static>>,
@@ -32,10 +32,10 @@ struct AnimationRunnerTask {
     last_instant: watch::Sender<Instant>,
 }
 
-impl AnimationRunnerTask {
-    async fn run(self) {
+impl PatternRunnerTask {
+    async fn run(self, fps: f32) {
         self.last_instant.send(Instant::now()).unwrap();
-        let frame_duration = Duration::from_secs(1).div_f32(FPS);
+        let frame_duration = Duration::from_secs(1).div_f32(fps);
         let mut interval = interval(frame_duration);
         interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
         // enum WaitResult {
@@ -92,30 +92,28 @@ impl AnimationRunnerTask {
 }
 
 pub struct Pattern {
-    animation_runner_handle: Option<JoinHandle<()>>,
+    id: RandId,
+    name: String,
+    animation_runner_handle: JoinHandle<()>,
     frame_receiver: watch::Receiver<Frame<ColorPixel>>,
+    fps: f32,
     t: watch::Receiver<f64>,
     last_instant: watch::Receiver<Instant>,
-    layer: Prop<LayerStack<(), Frame<ColorPixel>>>,
+    stack: Prop<LayerStack<(), Frame<ColorPixel>>>,
     num_pixels: Prop<usize>,
     position_map: Prop<PositionMap<'static>>,
     running: Prop<bool>,
     speed: Prop<f64>,
+    property_view_map: HashMap<RandId, PropView>,
 }
 
 impl Pattern {
-    pub fn new(mut layer: LayerStack<(), Frame<ColorPixel>>, num_pixels: usize) -> Self {
-        let (update_sender, update_receiver) = watch::channel(
-            layer.next((), 0.0, &PatternContext::new(num_pixels))
-                .unwrap_or_else(|err| {
-                    eprintln!("Failed to evaluate stack: {:?}", err);
-                    Frame::<ColorPixel>::empty(num_pixels)
-                })
-        );
+    pub fn new(name: &str, num_pixels: usize, fps: f32) -> Self {
+        let (update_sender, update_receiver) = watch::channel(Frame::empty(num_pixels));
         let (t_send, t_recv) = watch::channel(0.0);
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
-        let animation_runner = AnimationRunnerTask {
-            layer: LayerStackPropCore::new(layer).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+        let animation_runner = PatternRunnerTask {
+            layer: LayerStackPropCore::new(LayerStack::new(&VOID, &PIXEL_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             num_pixels: NumPropCore::new_slider(num_pixels, 0..500, 10).into_prop(PropertyInfo::new("Number of Pixels")),
             position_map: RawPropCore::new(PositionMap::new_linear(num_pixels)).into_prop(PropertyInfo::new("Position Map")),
             update_sender,
@@ -125,24 +123,43 @@ impl Pattern {
             last_instant: last_instant_send,
         };
         Pattern {
+            id: random(),
+            name: name.to_string(),
             frame_receiver: update_receiver,
+            fps,
             t: t_recv,
             last_instant: last_instant_recv,
-            layer: animation_runner.layer.clone(),
+            stack: animation_runner.layer.clone(),
             num_pixels: animation_runner.num_pixels.clone(),
             position_map: animation_runner.position_map.clone(),
             running: animation_runner.running.clone(),
             speed: animation_runner.speed.clone(),
-            animation_runner_handle: Some(spawn(animation_runner.run())),
+            animation_runner_handle: spawn(animation_runner.run(fps)),
+            property_view_map: HashMap::new(),
         }
     }
 
-    pub fn view(&self) -> PatternView {
-        PatternView::new(self)
+    pub fn id(&self) -> RandId {
+        self.id
     }
 
-    pub fn layer(&self) -> &Prop<LayerStack<(), Frame<ColorPixel>>> {
-        &self.layer
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn view(&mut self) -> PatternView {
+        let view = PatternView::new(self);
+        self.property_view_map = view.generate_property_map();
+        view
+    }
+
+    pub fn try_update_prop(&mut self, prop_id: RandId, value: String) -> Result<(), String> {
+        let property = self.property_view_map.get_mut(&prop_id).ok_or("Unknown property id")?;
+        property.try_update(value.as_str())
+    }
+
+    pub fn stack(&self) -> &Prop<LayerStack<(), Frame<ColorPixel>>> {
+        &self.stack
     }
 
     pub fn running(&self) -> &Prop<bool> {
@@ -166,7 +183,7 @@ impl Pattern {
 
 impl Drop for Pattern {
     fn drop(&mut self) {
-        self.animation_runner_handle.take().unwrap().abort();
+        self.animation_runner_handle.abort();
     }
 }
 
@@ -175,8 +192,8 @@ impl Clone for Pattern {
         let (update_send, update_recv) = watch::channel(self.frame_receiver.borrow().clone());
         let (t_send, t_recv) = watch::channel(self.get_t());
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
-        let animation_runner = AnimationRunnerTask {
-            layer: self.layer.clone(),
+        let animation_runner = PatternRunnerTask {
+            layer: self.stack.fork(),
             num_pixels: self.num_pixels.clone(),
             position_map: self.position_map.clone(),
             update_sender: update_send,
@@ -186,15 +203,19 @@ impl Clone for Pattern {
             last_instant: last_instant_send,
         };
         Pattern {
+            id: random(),
+            name: self.name.clone(),
             frame_receiver: update_recv,
+            fps: self.fps,
             t: t_recv,
             last_instant: last_instant_recv,
-            layer: animation_runner.layer.clone(),
+            stack: animation_runner.layer.clone(),
             num_pixels: animation_runner.num_pixels.clone(),
             position_map: animation_runner.position_map.clone(),
             running: animation_runner.running.clone(),
             speed: animation_runner.speed.clone(),
-            animation_runner_handle: Some(spawn(animation_runner.run())),
+            animation_runner_handle: spawn(animation_runner.run(self.fps)),
+            property_view_map: HashMap::new(),
         }
     }
 }
@@ -202,7 +223,7 @@ impl Clone for Pattern {
 impl Component for Pattern {
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
-            self.layer,
+            self.stack,
             self.num_pixels,
             self.speed,
             self.running,
@@ -211,7 +232,7 @@ impl Component for Pattern {
 
     fn detach(&mut self) {
         fork_properties!(
-            self.layer,
+            self.stack,
             self.num_pixels,
             self.speed,
             self.running,
@@ -223,13 +244,14 @@ impl Component for Pattern {
 
 #[derive(Serialize)]
 pub struct PatternView {
+    id: RandId,
     root_stack: PropView,
     components: HashMap<RandId, LayerView>,
 }
 
 impl PatternView {
     fn new(pattern: &Pattern) -> Self {
-        let root_stack = pattern.layer().view();
+        let root_stack = pattern.stack().view();
         let mut layers = vec![];
         let mut current_layers = root_stack.child_layer_views();
         while !current_layers.is_empty() {
@@ -243,6 +265,7 @@ impl PatternView {
             current_layers = next_layers;
         }
         Self {
+            id: pattern.id(),
             root_stack,
             components: layers.into_iter()
                 .map(|layer_view| (layer_view.info().id(), layer_view))
