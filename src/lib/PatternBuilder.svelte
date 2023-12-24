@@ -6,35 +6,31 @@
 
     export let patternBuilder: PatternBuilderView|null;
 
-    let patternView = null;
-    $: patternBuilder?.getPatternView(patternBuilder.selectedPatternId)
-        .then(result => {
-            patternView = result;
-        });
-
     onMount(async () => {
         let openPatternsInfo = JSON.parse(await invoke("view_open_patterns", {}));
         patternBuilder = new PatternBuilderView(openPatternsInfo);
         patternBuilder.selectedPatternId = patternBuilder.getPatternsInfo()[0].id;
     });
 </script>
-<div class="df-pattern-builder">
-    <div class="pattern-tabs">
-        {#each patternBuilder?.getPatternsInfo() ?? [] as patternInfo}
-            <div
-                    class="tab {patternBuilder.selectedPatternId === patternInfo.id ? 'active' : ''}"
-                    on:click={() => { patternBuilder.selectedPatternId = patternInfo.id }}
-            >{patternInfo.name}</div>
-        {/each}
+{#if patternBuilder !== null}
+    <div class="df-pattern-builder">
+        <div class="pattern-tabs">
+            {#each patternBuilder?.getPatternsInfo() ?? [] as patternInfo}
+                <div
+                        class="tab {patternBuilder.selectedPatternId === patternInfo.id ? 'active' : ''}"
+                        on:click={() => { patternBuilder.selectedPatternId = patternInfo.id }}
+                >{patternInfo.name}</div>
+            {/each}
+        </div>
+        <div class="pattern-view">
+            {#key patternBuilder.selectedPatternId}
+                {#if patternBuilder.selectedPatternId !== null }
+                    <Pattern patternInfo="{patternBuilder.getPatternInfo(patternBuilder.selectedPatternId)}" />
+                {/if}
+            {/key}
+        </div>
     </div>
-    <div class="pattern-view">
-        {#key patternView}
-            {#if patternView !== null }
-                <Pattern pattern="{patternView}" />
-            {/if}
-        {/key}
-    </div>
-</div>
+{/if}
 <style lang="scss">
     .df-pattern-builder {
       flex: 1 1 auto;

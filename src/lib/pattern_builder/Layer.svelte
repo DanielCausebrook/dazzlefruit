@@ -9,7 +9,7 @@
         IconQuestionMark,
         IconArrowBigRight
     } from "@tabler/icons-svelte";
-    import {type PatternBuilderView, PatternView} from "./pattern-builder-view";
+    import type {PatternView} from "./pattern-view";
 
     export let pattern: PatternView;
     export let layerId: RandId;
@@ -44,7 +44,7 @@
     <div class="properties">
         {#each layerView.properties as property}
             {#if property.display_pane === 'TreeAndConfig' || (paneType === 'Tree' && property.display_pane === 'Tree') || (paneType === 'Config' && property.display_pane === 'Config')}
-                <Property bind:pattern={pattern} propConfig={property} />
+                <Property bind:pattern={pattern} bind:propConfig={property} />
             {/if}
         {/each}
     </div>

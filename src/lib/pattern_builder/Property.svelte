@@ -2,7 +2,7 @@
     import Layer from "./Layer.svelte";
     import {invoke} from "@tauri-apps/api/tauri";
     import {rgbToHex} from "./rgb-to-hex";
-    import {PatternView} from "./pattern-builder-view";
+    import type {PatternView} from "./pattern-view";
 
     export let pattern: PatternView;
     export let propConfig: AnyPropView;

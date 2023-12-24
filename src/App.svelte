@@ -8,7 +8,7 @@
   let connection: {ip: string} | null = null;
   let unlistenOpen, unlistenClose;
 
-  let patternBuilder: PatternBuilderView|null;
+  let patternBuilder: PatternBuilderView|null = null;
 
   onMount(async () => {
     unlistenOpen = await listen('connection-open', (event: Event<{ip: string}>) => {
