@@ -31,10 +31,6 @@ impl<F, T> PropCore for ComputedPropCore<F, T> where F: Fn() -> T + Send + Sync 
         PropWrite::Value((self.0)())
     }
 
-    fn try_replace(&mut self, _value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Err("Cannot replace the value of a computed property.".to_string())
-    }
-
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {
         Box::new(self.fork())
     }

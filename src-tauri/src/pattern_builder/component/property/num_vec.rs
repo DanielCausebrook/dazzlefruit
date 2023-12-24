@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::mem;
 use std::ops::Range;
 use nalgebra_glm::TVec;
 use num_traits::Num;
@@ -44,10 +43,6 @@ impl<T, const D: usize> PropCore for NumVecPropCore<T, D> where T: Num + Copy + 
 
     fn write(&mut self) -> PropWrite<Self::Value> {
         PropWrite::Ref(&mut self.val)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Ok(mem::replace(&mut self.val, value))
     }
 
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {

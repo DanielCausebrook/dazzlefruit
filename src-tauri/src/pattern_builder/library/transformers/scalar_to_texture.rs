@@ -6,7 +6,7 @@ use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo, LayerType};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, SCALAR_FRAME, VOID};
+use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME, VOID};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
@@ -20,12 +20,12 @@ pub struct ScalarToTexture {
 
 impl ScalarToTexture {
     pub fn new() -> Self {
-        Self::from(LayerStack::new(&VOID, &PIXEL_FRAME))
+        Self::from(LayerStack::new(&VOID, &COLOR_FRAME))
     }
     
     pub fn from(texture: LayerStack<(), Frame<ColorPixel>>) -> Self {
         Self {
-            texture: LayerStackPropCore::new(texture).into_prop(PropertyInfo::new("Texture").set_display_pane(DisplayPane::Tree)),
+            texture: LayerStackPropCore::new(texture).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             lower_bound: NumPropCore::new(0.0).into_prop(PropertyInfo::new("Lower Bound")),
             upper_bound: NumPropCore::new(1.0).into_prop(PropertyInfo::new("Upper Bound")),
         }
@@ -44,7 +44,7 @@ impl ScalarToTexture {
     }
     
     pub fn into_layer(self, info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, info, &SCALAR_FRAME, &PIXEL_FRAME)
+        GenericLayer::new(self, info, &SCALAR_FRAME, &COLOR_FRAME)
             .set_layer_type(LayerType::Transformer)
     }
 }
@@ -74,7 +74,7 @@ impl LayerCore for ScalarToTexture {
 
     fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
         let mut frame = self.texture.write().next((), t, ctx)
-            .unwrap_or_else(|err| Frame::empty(ctx.num_pixels()));
+            .unwrap_or_else(|_err| Frame::empty(ctx.num_pixels()));
         let lower_bound = *self.lower_bound.read();
         let upper_bound = *self.upper_bound.read();
         for (pixel, input_value) in frame.iter_mut().zip_eq(input) {

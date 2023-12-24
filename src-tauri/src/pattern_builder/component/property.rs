@@ -52,10 +52,6 @@ impl<T> Prop<T> where T: 'static {
         mem::replace(&mut *self.core.write(), Box::new(core))
     }
 
-    pub fn try_replace_value(&self, value: T) -> Result<T, String> {
-        self.core.write().try_replace(value)
-    }
-
     pub fn fork(&self) -> Self {
         Self {
             info: self.info.fork(),
@@ -319,7 +315,6 @@ pub trait PropCore: ErasedPropCore + DynClone + Send + Sync + 'static {
     type Value;
     fn read(&self) -> PropRead<Self::Value>;
     fn write(&mut self) -> PropWrite<Self::Value>;
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized;
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>>;
     fn into_prop(self, info: PropertyInfo) -> Prop<Self::Value> where Self: Sized {
         Prop::new(self, info)

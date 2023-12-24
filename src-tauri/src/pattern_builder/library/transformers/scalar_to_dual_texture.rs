@@ -7,7 +7,7 @@ use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo, LayerType};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, SCALAR_FRAME, VOID};
+use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME, VOID};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
@@ -23,8 +23,8 @@ pub struct ScalarToDualTexture {
 impl ScalarToDualTexture {
     pub fn new() -> Self {
         Self {
-            texture_a: LayerStackPropCore::new(LayerStack::new(&VOID, &PIXEL_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
-            texture_b: LayerStackPropCore::new(LayerStack::new(&VOID, &PIXEL_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            texture_a: LayerStackPropCore::new(LayerStack::new(&VOID, &COLOR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            texture_b: LayerStackPropCore::new(LayerStack::new(&VOID, &COLOR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             lower_bound: NumPropCore::new(0.0).into_prop(PropertyInfo::new("Lower Bound")),
             upper_bound: NumPropCore::new(1.0).into_prop(PropertyInfo::new("Upper Bound")),
         }
@@ -47,7 +47,7 @@ impl ScalarToDualTexture {
     }
     
     pub fn into_layer(self, info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, info, &SCALAR_FRAME, &PIXEL_FRAME)
+        GenericLayer::new(self, info, &SCALAR_FRAME, &COLOR_FRAME)
             .set_layer_type(LayerType::Transformer)
     }
 }
@@ -79,9 +79,9 @@ impl LayerCore for ScalarToDualTexture {
 
     fn next(&mut self, input: Frame<ScalarPixel>, t: f64, ctx: &PatternContext) -> Frame<ColorPixel> {
         let frame_a = self.texture_a.write().next((), t, ctx)
-            .unwrap_or_else(|err| Frame::<ColorPixel>::empty(ctx.num_pixels()));
+            .unwrap_or_else(|_err| Frame::<ColorPixel>::empty(ctx.num_pixels()));
         let frame_b = self.texture_b.write().next((), t, ctx)
-            .unwrap_or_else(|err| Frame::<ColorPixel>::empty(ctx.num_pixels()));
+            .unwrap_or_else(|_err| Frame::<ColorPixel>::empty(ctx.num_pixels()));
         let lower_bound = *self.lower_bound.read();
         let upper_bound = *self.upper_bound.read();
         frame_a.into_iter()

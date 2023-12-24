@@ -10,7 +10,7 @@ use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
-pub struct Wave {
+pub struct Waves {
     wave1_speed: Prop<f64>,
     wave1_scale: Prop<f64>,
     wave1_skew: Prop<f64>,
@@ -19,7 +19,7 @@ pub struct Wave {
     wave2_skew: Prop<f64>,
 }
 
-impl Wave {
+impl Waves {
     pub fn new() -> Self {
         Self {
             wave1_speed: NumPropCore::new_slider(9.0, -30.0..30.0, 0.1).into_prop(PropertyInfo::new("Wave 1 Speed")),
@@ -31,12 +31,36 @@ impl Wave {
         }
     }
 
+    pub fn wave1_speed(&self) -> &Prop<f64> {
+        &self.wave1_speed
+    }
+
+    pub fn wave1_scale(&self) -> &Prop<f64> {
+        &self.wave1_scale
+    }
+
+    pub fn wave1_skew(&self) -> &Prop<f64> {
+        &self.wave1_skew
+    }
+
+    pub fn wave2_speed(&self) -> &Prop<f64> {
+        &self.wave2_speed
+    }
+
+    pub fn wave2_scale(&self) -> &Prop<f64> {
+        &self.wave2_scale
+    }
+
+    pub fn wave2_skew(&self) -> &Prop<f64> {
+        &self.wave2_skew
+    }
+
     pub fn into_layer(self, layer_info: LayerInfo) -> ScalarTextureLayer {
         ScalarTextureLayer::new(self, layer_info)
     }
 }
 
-impl Component for Wave {
+impl Component for Waves {
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
             self.wave1_speed,
@@ -60,7 +84,7 @@ impl Component for Wave {
     }
 }
 
-impl LayerCore for Wave {
+impl LayerCore for Waves {
     type Input = ();
     type Output = Frame<ScalarPixel>;
     fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ScalarPixel> {

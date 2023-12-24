@@ -5,7 +5,7 @@ use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{LayerCore, LayerInfo, LayerType};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::PIXEL_FRAME;
+use crate::pattern_builder::component::layer::standard_types::COLOR_FRAME;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
@@ -41,7 +41,7 @@ impl RotateEffect {
     }
     
     pub fn into_layer(self, info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, info, &PIXEL_FRAME, &PIXEL_FRAME)
+        GenericLayer::new(self, info, &COLOR_FRAME, &COLOR_FRAME)
             .set_layer_type(LayerType::Filter)
     }
 }

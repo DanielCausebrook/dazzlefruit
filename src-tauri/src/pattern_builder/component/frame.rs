@@ -16,14 +16,14 @@ pub trait Blend {
     fn blend(self, active: Self, blend_mode: BlendMode) -> Self;
 }
 
-pub trait Decay: Sized {
-    fn decay(self, decay_rate: f64, delta_t: f64) -> Self {
-        self.decay_to(E.powf(-decay_rate * delta_t))
+pub trait Opacity {
+    fn scale_opacity(self, amount: f64) -> Self;
+    fn decay_opacity(self, decay_rate: f64, delta_t: f64) -> Self where Self: Sized {
+        self.scale_opacity(E.powf(-decay_rate * delta_t))
     }
-    fn decay_to(self, amount: f64) -> Self;
 }
 
-pub trait Pixel: Blend + Clone + Send + Sync {
+pub trait Pixel: Blend + Opacity + Clone + Send + Sync + 'static {
     fn empty() -> Self;
 }
 
@@ -39,9 +39,9 @@ impl Blend for ColorPixel {
     }
 }
 
-impl Decay for ColorPixel {
-    fn decay_to(self, amount: f64) -> Self {
-        self.with_alpha(self.alpha.decay_to(amount))
+impl Opacity for ColorPixel {
+    fn scale_opacity(self, amount: f64) -> Self {
+        self.with_alpha(self.alpha.scale_opacity(amount.clamp(0.0, 1.0)))
     }
 }
 
@@ -65,8 +65,8 @@ impl Blend for ScalarPixel {
     }
 }
 
-impl Decay for ScalarPixel {
-    fn decay_to(self, amount: f64) -> Self {
+impl Opacity for ScalarPixel {
+    fn scale_opacity(self, amount: f64) -> Self {
         self * amount
     }
 }
@@ -117,10 +117,10 @@ impl<P: Pixel> Blend for Frame<P> {
     }
 }
 
-impl<P> Decay for Frame<P> where P: Pixel + Decay {
-    fn decay_to(self, amount: f64) -> Self {
+impl<P> Opacity for Frame<P> where P: Pixel {
+    fn scale_opacity(self, amount: f64) -> Self {
         self.into_iter()
-            .map(|p| p.decay_to(amount))
+            .map(|p| p.scale_opacity(amount))
             .collect()
     }
 }

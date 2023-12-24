@@ -30,6 +30,18 @@ impl ColorRange {
         }
     }
 
+    pub fn color(&self) -> &Prop<ColorPixel> {
+        &self.color
+    }
+
+    pub fn variance(&self) -> &Prop<f64> {
+        &self.variance
+    }
+
+    pub fn period(&self) -> &Prop<f64> {
+        &self.period
+    }
+
     pub fn into_layer(self, info: LayerInfo) -> TextureLayer {
         TextureLayer::new(self, info)
     }

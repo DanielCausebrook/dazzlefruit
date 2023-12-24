@@ -1,11 +1,10 @@
-use std::mem;
 use erased_serde::Serialize;
 use crate::pattern_builder::component::property::{PropCore, ErasedPropCore, PropRead, PropWrite};
 
 #[derive(Clone)]
-pub struct StringProp(String);
+pub struct StringPropCore(String);
 
-impl StringProp {
+impl StringPropCore {
     pub fn new(value: String) -> Self {
         Self (value)
     }
@@ -15,7 +14,7 @@ impl StringProp {
     }
 }
 
-impl PropCore for StringProp {
+impl PropCore for StringPropCore {
     type Value = String;
 
     fn read(&self) -> PropRead<Self::Value> {
@@ -26,22 +25,19 @@ impl PropCore for StringProp {
         PropWrite::Ref(&mut self.0)
     }
 
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Ok(mem::replace(&mut self.0, value))
-    }
-
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {
         Box::new(self.fork())
     }
 }
 
-impl ErasedPropCore for StringProp {
+impl ErasedPropCore for StringPropCore {
     fn prop_type_id(&self) -> String {
         "string".to_string()
     }
 
     fn try_update(&mut self, str: &str) -> Result<(), String> {
-        self.try_replace(str.to_string()).map(|_| ())
+        self.0 = str.to_string();
+        Ok(())
     }
 
     fn value_serialize(&self) -> Box<dyn Serialize + '_> {

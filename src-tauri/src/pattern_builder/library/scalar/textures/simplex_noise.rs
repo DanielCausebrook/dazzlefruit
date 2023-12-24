@@ -29,6 +29,18 @@ impl SimplexNoise {
         }
     }
 
+    pub fn flow_speed(&self) -> &Prop<f64> {
+        &self.flow_speed
+    }
+
+    pub fn scale(&self) -> &Prop<DVec3> {
+        &self.scale
+    }
+
+    pub fn travel_vel(&self) -> &Prop<DVec3> {
+        &self.travel_vel
+    }
+
     pub fn into_layer(self, layer_info: LayerInfo) -> ScalarTextureLayer {
         ScalarTextureLayer::new(self, layer_info)
     }

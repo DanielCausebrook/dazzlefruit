@@ -8,7 +8,7 @@ use crate::pattern_builder::component::property::computed::ComputedPropCore;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
-use crate::pattern_builder::library::scalar_filters::persistence::Persistence;
+use crate::pattern_builder::library::generic::filters::persistence::Persistence;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]

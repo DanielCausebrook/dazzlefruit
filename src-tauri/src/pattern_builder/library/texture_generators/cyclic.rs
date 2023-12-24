@@ -50,7 +50,7 @@ impl Component for CyclicTextureGenerator {
 impl LayerCore for CyclicTextureGenerator {
     type Input = ();
     type Output = TextureLayer;
-    fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> TextureLayer {
+    fn next(&mut self, _: (), _t: f64, _ctx: &PatternContext) -> TextureLayer {
         let textures = self.textures.read();
         if textures.is_empty() {
             empty_texture_layer()

@@ -6,7 +6,7 @@ use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo, LayerType};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, SCALAR_FRAME, VOID};
+use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME, VOID};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
@@ -27,7 +27,7 @@ impl AlphaMask {
     }
 
     pub fn into_layer(self, layer_info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, layer_info, &PIXEL_FRAME, &PIXEL_FRAME)
+        GenericLayer::new(self, layer_info, &COLOR_FRAME, &COLOR_FRAME)
             .set_layer_type(LayerType::Filter)
     }
 }

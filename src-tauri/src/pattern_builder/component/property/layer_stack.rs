@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::mem;
 use crate::pattern_builder::component::layer::LayerView;
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
@@ -32,10 +31,6 @@ impl<I, O> PropCore for LayerStackPropCore<I, O> where I: 'static, O: 'static {
 
     fn write(&mut self) -> PropWrite<Self::Value> {
         PropWrite::Ref(&mut self.0)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Ok(mem::replace(&mut self.0, value))
     }
 
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {

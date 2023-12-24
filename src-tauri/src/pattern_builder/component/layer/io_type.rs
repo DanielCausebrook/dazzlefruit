@@ -24,26 +24,26 @@ impl<T> IOType<T> where T: 'static {
             mappers_into: HashMap::new(),
             marker: std::marker::PhantomData::default(),
         };
-        new.add_mapper_from(|x| x);
-        new.add_mapper_into(|x| x);
+        new.add_mapping_from(|x| x);
+        new.add_mapping_into(|x| x);
         new
     }
 
-    pub fn add_mapper_from<U: 'static>(&mut self, mapper: fn(U) -> T) {
+    pub fn add_mapping_from<U: 'static>(&mut self, mapper: fn(U) -> T) {
         self.mappers_from.insert(TypeId::of::<U>(), Box::new(move |value: Box<dyn Any>| Box::new(mapper(*value.downcast().unwrap()))));
     }
 
-    pub fn get_mapper_from<U: 'static>(&self) -> Option<Box<dyn Fn(U) -> T + '_>> {
+    pub fn get_mapping_from<U: 'static>(&self) -> Option<Box<dyn Fn(U) -> T + '_>> {
         self.mappers_from.get(&TypeId::of::<U>()).map(|func| {
             Box::new(|val: U| *func(Box::new(val) as Box<dyn Any>).downcast().unwrap()) as Box<dyn Fn(U) -> T>
         })
     }
 
-    pub fn add_mapper_into<U: 'static>(&mut self, mapper: fn(T) -> U) {
+    pub fn add_mapping_into<U: 'static>(&mut self, mapper: fn(T) -> U) {
         self.mappers_into.insert(TypeId::of::<U>(), Box::new(move |value: Box<dyn Any>| Box::new(mapper(*value.downcast().unwrap()))));
     }
 
-    pub fn get_mapper_into<U: 'static>(&self) -> Option<Box<dyn Fn(T) -> U + '_>> {
+    pub fn get_mapping_into<U: 'static>(&self) -> Option<Box<dyn Fn(T) -> U + '_>> {
         self.mappers_into.get(&TypeId::of::<U>()).map(|func| {
             Box::new(|val: T| *func(Box::new(val) as Box<dyn Any>).downcast().unwrap()) as Box<dyn Fn(T) -> U>
         })

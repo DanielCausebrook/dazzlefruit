@@ -1,9 +1,6 @@
 pub mod core;
-pub mod filters;
-pub mod color_range;
-pub mod waves;
 pub mod texture_generators;
-pub mod textures;
-pub mod scalar_textures;
-pub mod scalar_filters;
 pub mod transformers;
+pub mod color;
+pub mod scalar;
+pub mod generic;

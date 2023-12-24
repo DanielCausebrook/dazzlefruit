@@ -1,4 +1,3 @@
-use std::mem;
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{Layer, LayerView};
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
@@ -33,10 +32,6 @@ impl<T> PropCore for LayerPropCore<T> where T: Layer + Clone {
 
     fn write(&mut self) -> PropWrite<Self::Value> {
         PropWrite::Ref(&mut self.0)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Ok(mem::replace(&mut self.0, value))
     }
 
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {
@@ -92,14 +87,6 @@ impl<T> PropCore for LayerVecPropCore<T> where T: Layer + Clone {
 
     fn write(&mut self) -> PropWrite<Self::Value> {
         PropWrite::Ref(&mut self.0)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        if value.is_empty() {
-            Ok(mem::replace(&mut self.0, vec![]))
-        } else {
-            Err("Can only replace the value of a ComponentVecProp with an empty vec.".to_string())
-        }
     }
 
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {

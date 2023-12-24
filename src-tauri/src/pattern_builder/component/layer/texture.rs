@@ -2,7 +2,7 @@ use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{Blend, BlendMode, ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerType, LayerView};
 use crate::pattern_builder::component::layer::io_type::IOType;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, PIXEL_FRAME_OPTION};
+use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, COLOR_FRAME_OPTION};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
@@ -52,7 +52,9 @@ impl TextureLayer {
 
 impl Component for TextureLayer {
     fn view_properties(&self) -> Vec<PropView> {
-        self.texture.view_properties()
+        self.texture.view_properties().into_iter()
+            .chain([self.opacity.view()])
+            .collect()
     }
 
     fn detach(&mut self) {
@@ -84,11 +86,11 @@ impl Layer for TextureLayer {
     }
 
     fn input_type(&self) -> &IOType<Self::Input> {
-        &PIXEL_FRAME_OPTION
+        &COLOR_FRAME_OPTION
     }
 
     fn output_type(&self) -> &IOType<Self::Output> {
-        &PIXEL_FRAME
+        &COLOR_FRAME
     }
 
     fn info(&self) -> &LayerInfo {

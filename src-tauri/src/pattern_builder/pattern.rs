@@ -12,7 +12,7 @@ use crate::pattern_builder::component::{Component, RandId};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerView};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, VOID};
+use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, VOID};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -113,7 +113,7 @@ impl Pattern {
         let (t_send, t_recv) = watch::channel(0.0);
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
         let animation_runner = PatternRunnerTask {
-            layer: LayerStackPropCore::new(LayerStack::new(&VOID, &PIXEL_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            layer: LayerStackPropCore::new(LayerStack::new(&VOID, &COLOR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             num_pixels: NumPropCore::new_slider(num_pixels, 0..500, 10).into_prop(PropertyInfo::new("Number of Pixels")),
             position_map: RawPropCore::new(PositionMap::new_linear(num_pixels)).into_prop(PropertyInfo::new("Position Map")),
             update_sender,

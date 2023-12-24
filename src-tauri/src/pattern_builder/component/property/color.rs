@@ -1,4 +1,3 @@
-use std::mem;
 use std::str::FromStr;
 use erased_serde::Serialize;
 use palette::Srgb;
@@ -27,10 +26,6 @@ impl PropCore for ColorPropCore {
 
     fn write(&mut self) -> PropWrite<Self::Value> {
         PropWrite::Ref(&mut self.0)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Ok(mem::replace(&mut self.0, value))
     }
 
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {

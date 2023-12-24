@@ -8,7 +8,7 @@ use crate::pattern_builder::component::RandId;
 use crate::pattern_builder::component::layer::io_type::IOType;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::pattern_builder::component::property::raw::RawPropCore;
-use crate::pattern_builder::component::property::string::StringProp;
+use crate::pattern_builder::component::property::string::StringPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 pub mod texture;
@@ -129,15 +129,15 @@ pub mod standard_types {
     use crate::pattern_builder::component::layer::texture::TextureLayer;
 
     pub static VOID: Lazy<IOType<()>> = Lazy::new(|| IOType::new("()"));
-    pub static  PIXEL_FRAME: Lazy<IOType<Frame<ColorPixel>>> = Lazy::new(|| {
-        let mut ty = IOType::new("PixelFrame");
-        ty.add_mapper_into(|frame| Some(frame));
+    pub static COLOR_FRAME: Lazy<IOType<Frame<ColorPixel>>> = Lazy::new(|| {
+        let mut ty = IOType::new("ColorFrame");
+        ty.add_mapping_into(|frame| Some(frame));
         ty
     });
-    pub static PIXEL_FRAME_OPTION: Lazy<IOType<Option<Frame<ColorPixel>>>> = Lazy::new(|| {
-        let mut ty = IOType::new("Option<PixelFrame>");
-        ty.add_mapper_from(|frame| Some(frame));
-        ty.add_mapper_from(|_: ()| None);
+    pub static COLOR_FRAME_OPTION: Lazy<IOType<Option<Frame<ColorPixel>>>> = Lazy::new(|| {
+        let mut ty = IOType::new("Option<ColorFrame>");
+        ty.add_mapping_from(|frame| Some(frame));
+        ty.add_mapping_from(|_: ()| None);
         ty
     });
 
@@ -148,14 +148,14 @@ pub mod standard_types {
 
     pub static SCALAR_FRAME: Lazy<IOType<Frame<ScalarPixel>>> = Lazy::new(|| {
         let mut ty = IOType::new("ScalarFrame");
-        ty.add_mapper_into(|frame| Some(frame));
+        ty.add_mapping_into(|frame| Some(frame));
         ty
     });
 
     pub static SCALAR_FRAME_OPTION: Lazy<IOType<Option<Frame<ScalarPixel>>>> = Lazy::new(|| {
         let mut ty = IOType::new("Option<ScalarFrame>");
-        ty.add_mapper_from(|frame| Some(frame));
-        ty.add_mapper_from(|_: ()| None);
+        ty.add_mapping_from(|frame| Some(frame));
+        ty.add_mapping_from(|_: ()| None);
         ty
     });
 }
@@ -171,13 +171,13 @@ impl LayerInfo {
     pub fn new(name: &str) -> Self {
         Self {
             id: random(),
-            name: StringProp::new(name.to_string()).into_prop(PropertyInfo::unnamed()),
+            name: StringPropCore::new(name.to_string()).into_prop(PropertyInfo::unnamed()),
             description: RawPropCore::new(None).into_prop(PropertyInfo::unnamed()),
         }
     }
 
     pub fn set_description(self, value: &str) -> Self {
-        self.description.try_replace_value(Some(value.to_string())).unwrap();
+        *self.description.write() = Some(value.to_string());
         self
     }
 

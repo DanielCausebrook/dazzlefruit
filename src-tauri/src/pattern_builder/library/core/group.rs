@@ -3,7 +3,7 @@ use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo, LayerType};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
-use crate::pattern_builder::component::layer::standard_types::{PIXEL_FRAME, VOID};
+use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, VOID};
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::layer::texture::TextureLayer;
@@ -17,7 +17,7 @@ pub struct Group {
 
 impl Group {
     pub fn new() -> Self {
-        Self::from(LayerStack::new(&VOID, &PIXEL_FRAME))
+        Self::from(LayerStack::new(&VOID, &COLOR_FRAME))
     }
 
     pub fn from(stack: LayerStack<(), Frame<ColorPixel>>) -> Self {
@@ -50,7 +50,7 @@ impl LayerCore for Group {
     type Output = Frame<ColorPixel>;
     fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ColorPixel> {
         let mut pixel_data = self.stack.write().next((), t, ctx)
-            .unwrap_or_else(|err| vec![].into());
+            .unwrap_or_else(|_err| vec![].into());
         pixel_data.resize_with_empty(ctx.num_pixels());
         pixel_data
     }

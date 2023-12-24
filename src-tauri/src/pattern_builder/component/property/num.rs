@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::mem;
 use std::ops::Range;
 use num_traits::Num;
 use serde::{Serialize};
@@ -52,10 +51,6 @@ impl<T> PropCore for NumPropCore<T> where T: Num + Copy + Serialize + Deserializ
 
     fn write(&mut self) -> PropWrite<Self::Value> {
         PropWrite::Ref(&mut self.val)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<Self::Value, String> where Self::Value: Sized {
-        Ok(mem::replace(&mut self.val, value))
     }
 
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {

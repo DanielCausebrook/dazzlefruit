@@ -1,4 +1,3 @@
-use std::mem;
 use crate::pattern_builder::component::property::{PropCore, ErasedPropCore, PropRead, PropWrite};
 
 #[derive(Clone)]
@@ -23,10 +22,6 @@ impl<T> PropCore for RawPropCore<T> where T: Clone + Send + Sync + 'static {
 
     fn write(&mut self) -> PropWrite<Self::Value> {
        PropWrite::Ref(&mut self.0)
-    }
-
-    fn try_replace(&mut self, value: Self::Value) -> Result<T, String> {
-        Ok(mem::replace(&mut self.0, value))
     }
 
     fn fork_dyn(&self) -> Box<dyn PropCore<Value=Self::Value>> {

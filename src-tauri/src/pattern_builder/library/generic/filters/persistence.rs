@@ -2,20 +2,20 @@ use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{LayerCore, LayerInfo, LayerType};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::frame::{Blend, BlendMode, Decay};
+use crate::pattern_builder::component::frame::{Blend, BlendMode, Opacity};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
 use crate::pattern_builder::component::layer::io_type::IOType;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
-pub struct Persistence<T> where T: Blend + Decay + Clone {
+pub struct Persistence<T> where T: Blend + Opacity + Clone {
     state: Option<T>,
     decay_rate: Prop<f64>,
     last_t: f64,
 }
 
-impl<T> Persistence<T> where T: Blend + Decay + Clone {
+impl<T> Persistence<T> where T: Blend + Opacity + Clone {
     pub fn new(decay_rate: f64) -> Self {
         Self {
             state: None,
@@ -34,7 +34,7 @@ impl<T> Persistence<T> where T: Blend + Decay + Clone {
     }
 }
 
-impl<T> Component for Persistence<T> where T: Blend + Decay + Clone + Send + Sync + 'static {
+impl<T> Component for Persistence<T> where T: Blend + Opacity + Clone + Send + Sync + 'static {
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
             self.decay_rate,
@@ -48,17 +48,17 @@ impl<T> Component for Persistence<T> where T: Blend + Decay + Clone + Send + Syn
     }
 }
 
-impl<T> LayerCore for Persistence<T> where T: Blend + Decay + Clone + Send + Sync + 'static {
+impl<T> LayerCore for Persistence<T> where T: Blend + Opacity + Clone + Send + Sync + 'static {
     type Input = T;
     type Output = T;
 
-    fn next(&mut self, active: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
+    fn next(&mut self, active: Self::Input, t: f64, _ctx: &PatternContext) -> Self::Output {
         let delta_t = (t - self.last_t).max(0.0);
         self.last_t = t;
 
         let decay_rate = *self.decay_rate.read();
         let result = match self.state.take() {
-            Some(state) => active.blend(state.decay(decay_rate, delta_t), BlendMode::Normal),
+            Some(state) => active.blend(state.decay_opacity(decay_rate, delta_t), BlendMode::Normal),
             None => active,
         };
         self.state = Some(result.clone());
