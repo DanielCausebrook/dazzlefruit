@@ -6,9 +6,12 @@
     export let connection: {ip: string} | null = null;
     export let patternBuilder: PatternBuilderView|null;
 
+    let selectedPatternId: string = "";
+
     async function disconnect() {
         try {
             await invoke("disconnect", {});
+            selectedPatternId = "";
         } catch (err) {
             // message = err;
             // setTimeout(() => message = "", 5000);
@@ -39,7 +42,6 @@
         }
     }
 
-    let selectedPatternId: string = "";
     async function setPattern() {
         try {
             await invoke("set_neopixel_pattern", {patternId: selectedPatternId !== "" ? selectedPatternId : null});
