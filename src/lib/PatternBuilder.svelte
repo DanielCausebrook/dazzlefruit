@@ -41,6 +41,7 @@
         / 1fr;
       align-items: stretch;
       justify-items: stretch;
+      overflow: clip;
 
       > .pattern-tabs {
         grid-area: pattern-tabs;
@@ -77,6 +78,7 @@
         display: flex;
         flex-flow: row nowrap;
         justify-content: center;
+        overflow: clip;
       }
     }
 </style>
