@@ -36,7 +36,6 @@
             <!--    <IconHexagonalPrism stroke={pattern.selectedLayerId === layerId ? 2 : 1}/>-->
             {/if}
         </div>
-        {@debug layerView}
         {#if layerView.name.value === null}
             <span class="layer-type-name">{layerView.type.name}</span>
         {:else}

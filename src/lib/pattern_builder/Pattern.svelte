@@ -71,7 +71,9 @@
       text-align: left;
       overflow: clip;
       > * {
-        overflow: auto;
+        display: flex;
+        flex-flow: column nowrap;
+        overflow: clip;
         border: 2px solid hsl(0, 0%, 10%);
         &.tree {
           flex: 0 1 300px;
@@ -81,13 +83,16 @@
         }
 
         > .header {
+          flex: 0 0 auto;
           padding: 5px 10px;
           background: hsl(0, 0%, 13%);
           color: hsl(0, 0%, 70%);
           font-weight: bold;
         }
         > .main {
+          flex: 1 1 auto;
           padding: 5px;
+          overflow: auto;
         }
       }
     }
