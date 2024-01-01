@@ -1,5 +1,5 @@
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::layer::{LayerCore, LayerInfo, LayerType};
+use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{Blend, BlendMode, Opacity};
@@ -28,9 +28,8 @@ impl<T> Persistence<T> where T: Blend + Opacity + Clone {
         &self.decay_rate
     }
     
-    pub fn into_layer(self, io_type: &'static IOType<T>, info: LayerInfo) -> GenericLayer<Self> where T: Send + Sync + 'static {
-        GenericLayer::new(self, info, io_type, io_type)
-            .set_layer_type(LayerType::Filter)
+    pub fn into_layer(self, io_type: &'static IOType<T>) -> GenericLayer<Self> where T: Send + Sync + 'static {
+        GenericLayer::new(self, LayerTypeInfo::new("Persistence").with_icon(LayerIcon::Filter), io_type, io_type)
     }
 }
 

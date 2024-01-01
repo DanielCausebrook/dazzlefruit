@@ -8,7 +8,7 @@ use crate::pattern_builder::component::RandId;
 use crate::pattern_builder::component::layer::io_type::IOType;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::pattern_builder::component::property::raw::RawPropCore;
-use crate::pattern_builder::component::property::string::StringPropCore;
+use crate::pattern_builder::component::property::string::OptionStringPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 pub mod texture;
@@ -34,12 +34,18 @@ impl<T> LayerCore for Box<T> where T: LayerCore + Clone + ?Sized {
 }
 
 pub trait Layer: LayerCore {
-    fn layer_type(&self) -> LayerType {
-        LayerType::Generic
-    }
+    fn type_info(&self) -> &LayerTypeInfo;
     fn input_type(&self) -> &IOType<Self::Input>;
     fn output_type(&self) -> &IOType<Self::Output>;
     fn info(&self) -> &LayerInfo;
+    fn with_name(self, name: &str) -> Self where Self: Sized {
+        *self.info().name().write() = Some(name.to_string());
+        self
+    }
+    fn with_description(self, description: &str) -> Self where Self: Sized {
+        *self.info().description().write() = Some(description.to_string());
+        self
+    }
     fn view(&self) -> LayerView {
         LayerView::new(self)
     }
@@ -48,8 +54,8 @@ clone_trait_object!(<I, O> Layer<Input=I, Output=O>);
 
 impl<T> Layer for Box<T> where T: Layer + Clone + ?Sized {
 
-    fn layer_type(&self) -> LayerType {
-        self.as_ref().layer_type()
+    fn type_info(&self) -> &LayerTypeInfo {
+        self.as_ref().type_info()
     }
 
     fn input_type(&self) -> &IOType<Self::Input> {
@@ -63,15 +69,19 @@ impl<T> Layer for Box<T> where T: Layer + Clone + ?Sized {
     fn info(&self) -> &LayerInfo {
         self.as_ref().info()
     }
-
+    fn with_name(self, name: &str) -> Self where Self: Sized {
+        Box::new((*self).with_name(name))
+    }
+    fn with_description(self, description: &str) -> Self where Self: Sized {
+        Box::new((*self).with_description(description))
+    }
     fn view(&self) -> LayerView {
         self.as_ref().view()
     }
 }
 
 #[derive(Copy, Clone, Serialize)]
-pub enum LayerType {
-    Generic,
+pub enum LayerIcon {
     Texture,
     Filter,
     Group,
@@ -79,7 +89,7 @@ pub enum LayerType {
 }
 
 pub struct LayerView {
-    layer_type: LayerType,
+    type_info: LayerTypeInfo,
     info: LayerInfo,
     property_views: Vec<PropView>,
     data: HashMap<String, Box<dyn erased_serde::Serialize + 'static>>,
@@ -88,7 +98,7 @@ pub struct LayerView {
 impl LayerView {
     pub fn new(layer: &(impl Layer + ?Sized)) -> Self {
         Self {
-            layer_type: layer.layer_type(),
+            type_info: layer.type_info().clone(),
             info: layer.info().clone(),
             property_views: layer.view_properties(),
             data: HashMap::new(),
@@ -113,7 +123,7 @@ impl Serialize for LayerView {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut struct_ser = serializer.serialize_struct("Layer", 6)?;
         struct_ser.serialize_field("id", &self.info.id())?;
-        struct_ser.serialize_field("type", &self.layer_type)?;
+        struct_ser.serialize_field("type", &self.type_info)?;
         struct_ser.serialize_field("name", &self.info.name().view())?;
         struct_ser.serialize_field("description", &self.info.description().view())?;
         struct_ser.serialize_field("data", &self.data)?;
@@ -160,23 +170,75 @@ pub mod standard_types {
     });
 }
 
+#[derive(Clone, Serialize)]
+pub struct LayerTypeInfo {
+    name: String,
+    description: Option<String>,
+    icon: Option<LayerIcon>,
+}
+
+impl LayerTypeInfo {
+    pub fn new(name: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            description: None,
+            icon: None,
+        }
+    }
+
+    pub fn with_description(mut self, description: &str) -> Self {
+        self.description = Some(description.to_string());
+        self
+    }
+
+    pub fn with_icon(mut self, icon: LayerIcon) -> Self {
+        self.icon = Some(icon);
+        self
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn description(&self) -> &Option<String> {
+        &self.description
+    }
+
+    pub fn icon(&self) -> &Option<LayerIcon> {
+        &self.icon
+    }
+}
+
 #[derive(Clone)]
 pub struct LayerInfo {
     id: RandId,
-    name: Prop<String>,
+    name: Prop<Option<String>>,
     description: Prop<Option<String>>,
 }
 
 impl LayerInfo {
-    pub fn new(name: &str) -> Self {
+    pub fn new() -> Self {
         Self {
             id: random(),
-            name: StringPropCore::new(name.to_string()).into_prop(PropertyInfo::unnamed()),
-            description: RawPropCore::new(None).into_prop(PropertyInfo::unnamed()),
+            name: OptionStringPropCore::new(None).into_prop(PropertyInfo::unnamed()),
+            description: OptionStringPropCore::new(None).into_prop(PropertyInfo::unnamed()),
         }
     }
 
-    pub fn set_description(self, value: &str) -> Self {
+    pub fn named(name: &str) -> Self {
+        Self {
+            id: random(),
+            name: OptionStringPropCore::new(Some(name.to_string())).into_prop(PropertyInfo::unnamed()),
+            description: OptionStringPropCore::new(None).into_prop(PropertyInfo::unnamed()),
+        }
+    }
+
+    pub fn with_name(self, value: &str) -> Self {
+        *self.name.write() = Some(value.to_string());
+        self
+    }
+
+    pub fn with_description(self, value: &str) -> Self {
         *self.description.write() = Some(value.to_string());
         self
     }
@@ -185,7 +247,7 @@ impl LayerInfo {
         self.id
     }
 
-    pub fn name(&self) -> &Prop<String> {
+    pub fn name(&self) -> &Prop<Option<String>> {
         &self.name
     }
 
@@ -197,6 +259,12 @@ impl LayerInfo {
         self.id = random();
         self.name = self.name.fork();
         self.description = self.description.fork();
+    }
+}
+
+impl Default for LayerInfo {
+    fn default() -> Self {
+        LayerInfo::new()
     }
 }
 

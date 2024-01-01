@@ -1,7 +1,7 @@
 use rand::distributions::{Distribution, Uniform};
 use rand_distr::Poisson;
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::layer::{LayerCore, LayerInfo};
+use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::pattern_builder::component::property::computed::ComputedPropCore;
@@ -48,8 +48,8 @@ impl Sparkles {
         &self.decay_rate
     }
 
-    pub fn into_layer(self, info: LayerInfo) -> ScalarTextureLayer {
-        ScalarTextureLayer::new(self, info)
+    pub fn into_layer(self) -> ScalarTextureLayer {
+        ScalarTextureLayer::new(self, LayerTypeInfo::new("Sparkles"))
     }
 }
 

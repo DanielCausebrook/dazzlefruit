@@ -8,18 +8,25 @@
 extern crate core;
 
 use std::str::FromStr;
+use palette::{Alpha, Hsl, Hsla, IntoColor, Srgba, WithHue};
+use palette::encoding::Srgb;
 
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
 use tokio::sync::RwLock;
-use pattern_builder::component::layer::LayerInfo;
 
 use crate::neopixel_controller::NeopixelController;
-use crate::pattern_builder::component::frame::{Frame};
+use crate::pattern_builder::component::frame::{Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::standard_types::SCALAR_FRAME;
 use crate::pattern_builder::library::core::group::Group;
 use pattern_builder::library::color::textures::solid_color::SolidColor;
 use pattern_builder::library::color::filters::alpha_mask::AlphaMask;
+use crate::pattern_builder::component::Component;
+use crate::pattern_builder::component::layer::generic::GenericLayer;
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
+use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
+use crate::pattern_builder::component::property::num::NumPropCore;
+use crate::pattern_builder::library::color::filters::map_hsl_component::MapHslComponent;
 use crate::pattern_builder::library::color::textures::color_range::ColorRange;
 use crate::pattern_builder::library::generic::filters::persistence::Persistence;
 use crate::pattern_builder::library::generic::filters::stutter::Stutter;
@@ -30,6 +37,7 @@ use crate::pattern_builder::library::scalar::textures::waves::Waves;
 use crate::pattern_builder::library::transformers::scalar_to_dual_texture::ScalarToDualTexture;
 use crate::pattern_builder::library::transformers::scalar_to_texture::ScalarToTexture;
 use crate::pattern_builder::pattern::Pattern;
+use crate::pattern_builder::pattern_context::PatternContext;
 use crate::pattern_builder::PatternBuilder;
 use crate::pico_connection::PicoConnectionHandle;
 use crate::tauri_events::DebugMessagePayload;
@@ -54,6 +62,43 @@ impl AppState {
     }
 }
 
+#[derive(Clone)]
+pub struct AddValue {
+    speed: Prop<f64>,
+}
+
+impl AddValue {
+    pub fn new(multiplier: f64) -> Self {
+        AddValue {
+            speed: NumPropCore::new(multiplier).into_prop(PropertyInfo::new("Rate of Change")),
+        }
+    }
+
+    pub fn into_layer(self) -> GenericLayer<Self> {
+        GenericLayer::new(self, LayerTypeInfo::new("Add value"), &SCALAR_FRAME, &SCALAR_FRAME)
+    }
+}
+
+impl Component for AddValue {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(self.speed)
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(self.speed);
+    }
+}
+
+impl LayerCore for AddValue {
+    type Input = Frame<ScalarPixel>;
+    type Output = Frame<ScalarPixel>;
+
+    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
+        input.into_iter()
+            .map(|value| value + t * *self.speed.read())
+            .collect()
+    }
+}
 
 fn get_test_pattern() -> Pattern {
     let pattern = Pattern::new("Test Pattern", 350, 60.0);
@@ -61,18 +106,18 @@ fn get_test_pattern() -> Pattern {
     let waves = Waves::new();
     *waves.wave1_scale().write() = 36.0;
     *waves.wave2_scale().write() = 45.0;
-    pattern.stack().write().push(waves.into_layer(LayerInfo::new("Waves")));
+    pattern.stack().write().push(waves.into_layer());
 
     let transformer = ScalarToDualTexture::new();
-    transformer.texture_a().write().push(ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer(LayerInfo::new("Color")));
-    transformer.texture_b().write().push(ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer(LayerInfo::new("Color")));
-    pattern.stack().write().push(transformer.into_layer(LayerInfo::new("Dual Texture")));
+    transformer.texture_a().write().push(ColorRange::new(Rgb::from_str("#FF00E1").unwrap().into()).into_layer());
+    transformer.texture_b().write().push(ColorRange::new(Rgb::from_str("#0433FF").unwrap().into()).into_layer());
+    pattern.stack().write().push(transformer.into_layer());
 
     let mask = AlphaMask::new();
-    mask.stack().write().push(Pulse::new(4.0, 10.0, 3.0).into_layer(LayerInfo::new("Pulse")));
-    mask.stack().write().push(Persistence::new(5.0).into_layer(&SCALAR_FRAME, LayerInfo::new("Persistence")));
-    mask.stack().write().push(Sparkles::new(7.0, 5.0).into_layer(LayerInfo::new("Sparkles")));
-    pattern.stack().write().push(mask.into_layer(LayerInfo::new("Alpha Mask")));
+    mask.stack().write().push(Pulse::new(4.0, 10.0, 3.0).into_layer());
+    mask.stack().write().push(Persistence::new(5.0).into_layer(&SCALAR_FRAME));
+    mask.stack().write().push(Sparkles::new(7.0, 5.0).into_layer());
+    pattern.stack().write().push(mask.into_layer());
 
     pattern
 }
@@ -83,33 +128,64 @@ fn get_test_pattern_2() -> Pattern {
     let green_group = Group::new();
     let noise = SimplexNoise::new(0.5);
     noise.scale().write().x = 1.0/40.0;
-    green_group.stack().write().push(noise.into_layer(LayerInfo::new("Noise")));
+    green_group.stack().write().push(noise.into_layer());
     let into_texture = ScalarToTexture::new();
-    into_texture.texture().write().push(SolidColor::new(Rgb::from_str("#00DE2D").unwrap().into()).into_layer(LayerInfo::new("Color")));
+    into_texture.texture().write().push(SolidColor::new(Rgb::from_str("#00DE2D").unwrap().into()).into_layer());
     *into_texture.lower_bound().write() = 0.3;
     *into_texture.upper_bound().write() = 0.35;
-    green_group.stack().write().push(into_texture.into_layer(LayerInfo::new("Into Texture")));
-    pattern.stack().write().push(green_group.into_layer(LayerInfo::new("Green BG")));
+    green_group.stack().write().push(into_texture.into_layer());
+    pattern.stack().write().push(green_group.into_layer().with_name("Green BG"));
 
     let sparkles_group = Group::new();
 
     let range_a = ColorRange::new(Rgb::from_str("#B51A00").unwrap().into());
     *range_a.variance().write() = 10.0;
-    sparkles_group.stack().write().push(range_a.into_layer(LayerInfo::new("Color Range")));
+    sparkles_group.stack().write().push(range_a.into_layer());
     let mask = AlphaMask::new();
-    mask.stack().write().push(Sparkles::new(7.0, 3.0).into_layer(LayerInfo::new("Sparkles")));
-    sparkles_group.stack().write().push(mask.into_layer(LayerInfo::new("Alpha Mask")));
-    pattern.stack().write().push(sparkles_group.into_layer(LayerInfo::new("BG")));
+    mask.stack().write().push(Sparkles::new(7.0, 3.0).into_layer());
+    sparkles_group.stack().write().push(mask.into_layer());
+    pattern.stack().write().push(sparkles_group.into_layer().with_name("BG"));
+
+    let hue_shift = MapHslComponent::new_hue();
+    hue_shift.map().write().push(AddValue::new(60.0).into_layer());
+    pattern.stack().write().push(hue_shift.into_layer().with_name("Hue Shift"));
 
     let pulse_group = Group::new();
-    pulse_group.stack().write().push(Pulse::new(3.5, 3.0, 8.0).into_layer(LayerInfo::new("Pulse")));
-    pulse_group.stack().write().push(Stutter::new_partially_empty(0.026, 0.0, |ctx| Frame::empty(ctx.num_pixels())).into_layer(&SCALAR_FRAME, LayerInfo::new("Stutter")));
-    pulse_group.stack().write().push(Persistence::new(2.7).into_layer(&SCALAR_FRAME, LayerInfo::new("Persistence")));
+    pulse_group.stack().write().push(Pulse::new(3.5, 3.0, 8.0).into_layer());
+    pulse_group.stack().write().push(Stutter::new_partially_empty(0.026, 0.0, |ctx| Frame::empty(ctx.num_pixels())).into_layer(&SCALAR_FRAME));
+    pulse_group.stack().write().push(Persistence::new(2.7).into_layer(&SCALAR_FRAME));
     let texture = ScalarToTexture::new();
-    texture.texture().write().push(SolidColor::new(Rgb::from_str("#FFB846").unwrap().into()).into_layer(LayerInfo::new("Color")));
-    pulse_group.stack().write().push(texture.into_layer(LayerInfo::new("To Texture")));
+    texture.texture().write().push(SolidColor::new(Rgb::from_str("#FFB846").unwrap().into()).into_layer());
+    pulse_group.stack().write().push(texture.into_layer());
 
-    pattern.stack().write().push(pulse_group.into_layer(LayerInfo::new("Stuttering Pulse")));
+    pattern.stack().write().push(pulse_group.into_layer().with_name("Stuttering Pulse"));
+
+    pattern
+}
+
+fn get_test_pattern_3() -> Pattern {
+    let pattern = Pattern::new("Blocks", 350, 60.0);
+
+    let color: Alpha<Hsl<Srgb, f64>, f64> = Hsla::new(0.0, 1.0, 0.5, 1.0);
+    let num_colors = 10;
+
+    for x in 0..num_colors {
+        let layer = Group::new();
+        let noise = SimplexNoise::new(0.8 - (0.3 * (x + 1) as f64 / num_colors as f64));
+        noise.scale().write().x = 1.0/40.0;
+        layer.stack().write().push(noise.into_layer());
+        let into_texture = ScalarToTexture::new();
+        let c2 = color.clone().with_hue(color.clone().hue.into_degrees() + (x as f64 * 360.0 / num_colors as f64));
+        into_texture.texture().write().push(SolidColor::new(IntoColor::<Srgba<f64>>::into_color(c2).into_linear()).into_layer());
+        *into_texture.lower_bound().write() = 0.3;
+        *into_texture.upper_bound().write() = 0.35;
+        layer.stack().write().push(into_texture.into_layer());
+        pattern.stack().write().push(layer.into_layer().with_name(format!("Layer {}", x).as_str()));
+    }
+
+    let hue_shift = MapHslComponent::new_hue();
+    hue_shift.map().write().push(AddValue::new(20.0).into_layer());
+    pattern.stack().write().push(hue_shift.into_layer().with_name("Hue Rotate"));
 
     pattern
 }
@@ -125,6 +201,7 @@ fn main() {
             };
             state.pattern_builder.load_pattern(get_test_pattern());
             state.pattern_builder.load_pattern(get_test_pattern_2());
+            state.pattern_builder.load_pattern(get_test_pattern_3());
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())
         })

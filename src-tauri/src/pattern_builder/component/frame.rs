@@ -12,8 +12,11 @@ pub enum BlendMode {
     Normal,
 }
 pub trait Blend {
-
     fn blend(self, active: Self, blend_mode: BlendMode) -> Self;
+}
+
+pub trait Mix {
+    fn mix(self, other: Self, amount: f64) -> Self;
 }
 
 pub trait Opacity {
@@ -23,7 +26,7 @@ pub trait Opacity {
     }
 }
 
-pub trait Pixel: Blend + Opacity + Clone + Send + Sync + 'static {
+pub trait Pixel: Blend + Mix + Opacity + Clone + Send + Sync + 'static {
     fn empty() -> Self;
 }
 
@@ -42,6 +45,12 @@ impl Blend for ColorPixel {
 impl Opacity for ColorPixel {
     fn scale_opacity(self, amount: f64) -> Self {
         self.with_alpha(self.alpha.scale_opacity(amount.clamp(0.0, 1.0)))
+    }
+}
+
+impl Mix for ColorPixel {
+    fn mix(self, other: Self, amount: f64) -> Self {
+        palette::Mix::mix(self, other, amount)
     }
 }
 
@@ -71,6 +80,13 @@ impl Opacity for ScalarPixel {
     }
 }
 
+impl Mix for ScalarPixel {
+    fn mix(self, other: Self, amount: f64) -> Self {
+        let amount = amount.clamp(0.0, 1.0);
+        (1.0 - amount) * self + amount * other
+    }
+}
+
 impl Pixel for ScalarPixel {
     fn empty() -> f64 {
         0.0
@@ -89,7 +105,7 @@ impl<P: Pixel> Frame<P> {
         self.resize_with(new_len, P::empty);
     }
 
-    pub fn blend_with<F>(self, active: Self, f: F) -> Self where F: Fn(P, P) -> P {
+    pub fn blend_using<F>(self, active: Self, f: F) -> Self where F: Fn(P, P) -> P {
         self.into_iter()
             .zip_longest(active.into_iter())
             .map(|pixels| pixels.or_else(P::empty, P::empty))
@@ -113,7 +129,7 @@ impl Frame<ColorPixel> {
 
 impl<P: Pixel> Blend for Frame<P> {
     fn blend(self, active: Self, blend_mode: BlendMode) -> Self {
-        self.blend_with(active, |pixel, active| pixel.blend(active, blend_mode.clone()))
+        self.blend_using(active, |pixel, active| pixel.blend(active, blend_mode.clone()))
     }
 }
 
@@ -122,6 +138,12 @@ impl<P> Opacity for Frame<P> where P: Pixel {
         self.into_iter()
             .map(|p| p.scale_opacity(amount))
             .collect()
+    }
+}
+
+impl<P> Mix for Frame<P> where P: Pixel {
+    fn mix(self, other: Self, amount: f64) -> Self {
+        self.blend_using(other, |pixel, other| pixel.mix(other, amount))
     }
 }
 

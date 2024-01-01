@@ -6,8 +6,9 @@ use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
-use crate::pattern_builder::component::layer::{DisplayPane, LayerCore};
-use crate::pattern_builder::component::layer::standard_types::SCALAR_FRAME;
+use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerIcon, LayerTypeInfo};
+use crate::pattern_builder::component::layer::generic::GenericLayer;
+use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
@@ -42,6 +43,20 @@ impl MapHslComponent {
             map: LayerStackPropCore::new(LayerStack::new(&SCALAR_FRAME, &SCALAR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             component: HslComponent::Lightness,
         }
+    }
+
+    pub fn map(&self) -> &Prop<LayerStack<Frame<ScalarPixel>, Frame<ScalarPixel>>> {
+        &self.map
+    }
+
+    pub fn into_layer(self) -> GenericLayer<Self> {
+        let component_name = match self.component {
+            HslComponent::Hue => "Hue",
+            HslComponent::Saturation => "Saturation",
+            HslComponent::Lightness => "Value",
+        };
+        let info = LayerTypeInfo::new(format!("Map {}", component_name).as_str()).with_icon(LayerIcon::Filter);
+        GenericLayer::new(self, info, &COLOR_FRAME, &COLOR_FRAME)
     }
 }
 

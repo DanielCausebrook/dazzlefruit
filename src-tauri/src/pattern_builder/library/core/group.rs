@@ -1,7 +1,7 @@
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
-use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo, LayerType};
+use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, VOID};
 use crate::pattern_builder::component::property::PropertyInfo;
@@ -30,8 +30,8 @@ impl Group {
         &self.stack
     }
 
-    pub fn into_layer(self, info: LayerInfo) -> TextureLayer where Self: Sized {
-        TextureLayer::new(self, info).set_layer_type(LayerType::Group)
+    pub fn into_layer(self) -> TextureLayer where Self: Sized {
+        TextureLayer::new(self, LayerTypeInfo::new("Group").with_icon(LayerIcon::Group))
     }
 }
 
@@ -48,6 +48,7 @@ impl Component for Group {
 impl LayerCore for Group {
     type Input = ();
     type Output = Frame<ColorPixel>;
+
     fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ColorPixel> {
         let mut pixel_data = self.stack.write().next((), t, ctx)
             .unwrap_or_else(|_err| vec![].into());

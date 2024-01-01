@@ -4,7 +4,7 @@ use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
-use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo, LayerType};
+use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
 use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME, VOID};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
@@ -43,9 +43,8 @@ impl ScalarToTexture {
         &self.upper_bound
     }
     
-    pub fn into_layer(self, info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, info, &SCALAR_FRAME, &COLOR_FRAME)
-            .set_layer_type(LayerType::Transformer)
+    pub fn into_layer(self) -> GenericLayer<Self> {
+        GenericLayer::new(self, LayerTypeInfo::new("To Texture").with_icon(LayerIcon::Transformer), &SCALAR_FRAME, &COLOR_FRAME)
     }
 }
 

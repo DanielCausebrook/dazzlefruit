@@ -3,7 +3,7 @@ use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::layer::{LayerCore, LayerInfo, LayerType};
+use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
 use crate::pattern_builder::component::layer::io_type::IOType;
 use crate::pattern_builder::pattern_context::PatternContext;
@@ -38,9 +38,8 @@ impl<T> Stutter<T> where T: Clone + Send + Sync + 'static {
         }
     }
 
-    pub fn into_layer(self, io_type: &'static IOType<T>, layer_info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, layer_info, io_type, io_type)
-            .set_layer_type(LayerType::Filter)
+    pub fn into_layer(self, io_type: &'static IOType<T>) -> GenericLayer<Self> {
+        GenericLayer::new(self, LayerTypeInfo::new("Stutter").with_icon(LayerIcon::Filter), io_type, io_type)
     }
 }
 

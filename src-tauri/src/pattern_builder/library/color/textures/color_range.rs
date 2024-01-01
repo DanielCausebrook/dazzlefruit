@@ -3,7 +3,7 @@ use palette::encoding::Srgb;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
-use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerInfo};
+use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::pattern_builder::component::property::color::ColorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
@@ -42,8 +42,8 @@ impl ColorRange {
         &self.period
     }
 
-    pub fn into_layer(self, info: LayerInfo) -> TextureLayer {
-        TextureLayer::new(self, info)
+    pub fn into_layer(self) -> TextureLayer {
+        TextureLayer::new(self, LayerTypeInfo::new("Color Range"))
     }
 }
 

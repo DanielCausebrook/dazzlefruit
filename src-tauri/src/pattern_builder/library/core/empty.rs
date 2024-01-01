@@ -1,13 +1,13 @@
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
-use crate::pattern_builder::component::layer::{LayerCore, LayerInfo};
+use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::PropView;
 use crate::pattern_builder::component::layer::texture::{TextureLayer};
 use crate::pattern_builder::pattern_context::PatternContext;
 
 pub fn empty_texture_layer() -> TextureLayer {
-    TextureLayer::new(Empty::<EmptyTexture>::new(), LayerInfo::new("Empty"))
+    TextureLayer::new(Empty::<EmptyTexture>::new(), LayerTypeInfo::new("Empty"))
 }
 
 struct EmptyTexture {}

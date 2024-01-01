@@ -3,7 +3,7 @@ use palette::Mix;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
-use crate::pattern_builder::component::layer::{LayerCore, LayerInfo, LayerType};
+use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
 use crate::pattern_builder::component::layer::standard_types::COLOR_FRAME;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
@@ -13,13 +13,13 @@ use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
-pub struct RotateEffect {
+pub struct Cycle {
     offset: Prop<f64>,
     speed: Prop<f64>,
     smoothing: Prop<bool>,
 }
 
-impl RotateEffect {
+impl Cycle {
     pub fn new(offset: f64, speed: f64, smoothing: bool) -> Self {
         Self {
             offset: NumPropCore::new_slider(offset, 0.0..500.0, 1.0).into_prop(PropertyInfo::new("Offset")),
@@ -40,13 +40,12 @@ impl RotateEffect {
         &self.smoothing
     }
     
-    pub fn into_layer(self, info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, info, &COLOR_FRAME, &COLOR_FRAME)
-            .set_layer_type(LayerType::Filter)
+    pub fn into_layer(self) -> GenericLayer<Self> {
+        GenericLayer::new(self, LayerTypeInfo::new("Cycle").with_icon(LayerIcon::Filter), &COLOR_FRAME, &COLOR_FRAME)
     }
 }
 
-impl Component for RotateEffect {
+impl Component for Cycle {
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(self.offset, self.speed, self.smoothing)
     }
@@ -56,7 +55,7 @@ impl Component for RotateEffect {
     }
 }
 
-impl LayerCore for RotateEffect {
+impl LayerCore for Cycle {
     type Input = Frame<ColorPixel>;
     type Output = Frame<ColorPixel>;
     fn next(&mut self, mut active: Frame<ColorPixel>, t: f64, _ctx: &PatternContext) -> Frame<ColorPixel> {

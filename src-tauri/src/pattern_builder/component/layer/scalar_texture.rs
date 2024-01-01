@@ -1,6 +1,6 @@
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{Blend, BlendMode, Frame, ScalarPixel};
-use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerType, LayerView};
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerIcon, LayerView, LayerTypeInfo};
 use crate::pattern_builder::component::layer::io_type::IOType;
 use crate::pattern_builder::component::layer::standard_types::{SCALAR_FRAME, SCALAR_FRAME_OPTION};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
@@ -12,34 +12,27 @@ use crate::pattern_builder::pattern_context::PatternContext;
 #[derive(Clone)]
 pub struct ScalarTextureLayer {
     info: LayerInfo,
-    layer_type: LayerType,
+    type_info: LayerTypeInfo,
     texture: Box<dyn LayerCore<Input=(), Output=Frame<ScalarPixel>>>,
     blend_mode: Prop<BlendMode>,
 }
 
 impl ScalarTextureLayer {
-    pub fn new(texture: impl LayerCore<Input=(), Output=Frame<ScalarPixel>>, info: LayerInfo) -> Self {
-        Self::new_from_boxed(Box::new(texture), info)
-    }
-
-    pub fn new_from_boxed(texture: Box<impl LayerCore<Input=(), Output=Frame<ScalarPixel>>>, info: LayerInfo) -> Self {
+    pub fn new(texture: impl LayerCore<Input=(), Output=Frame<ScalarPixel>>, mut type_info: LayerTypeInfo) -> Self {
+        if type_info.icon().is_none() {
+            type_info = type_info.with_icon(LayerIcon::Texture);
+        }
         Self {
-            info,
-            layer_type: LayerType::Texture,
-            texture,
+            info: LayerInfo::default(),
+            type_info,
+            texture: Box::new(texture),
             blend_mode: RawPropCore::new(BlendMode::Normal).into_prop(PropertyInfo::new("Blend Mode")),
         }
-    }
-
-    pub fn set_layer_type(mut self, layer_type: LayerType) -> Self {
-        self.layer_type = layer_type;
-        self
     }
 
     pub fn blend_mode(&self) -> &Prop<BlendMode> {
         &self.blend_mode
     }
-
 }
 
 impl Component for ScalarTextureLayer {
@@ -69,8 +62,8 @@ impl LayerCore for ScalarTextureLayer {
 }
 
 impl Layer for ScalarTextureLayer {
-    fn layer_type(&self) -> LayerType {
-        self.layer_type
+    fn type_info(&self) -> &LayerTypeInfo {
+        &self.type_info
     }
 
     fn input_type(&self) -> &IOType<Self::Input> {

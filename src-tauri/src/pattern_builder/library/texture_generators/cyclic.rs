@@ -1,11 +1,11 @@
-use crate::pattern_builder::component::layer::DisplayPane;
+use crate::pattern_builder::component::layer::{DisplayPane, LayerTypeInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::layer::{LayerCore, LayerInfo};
+use crate::pattern_builder::component::layer::{LayerCore};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
 use crate::pattern_builder::component::layer::standard_types::{TEXTURE_LAYER, VOID};
 use crate::pattern_builder::library::core::empty::empty_texture_layer;
@@ -28,8 +28,8 @@ impl CyclicTextureGenerator {
         }
     }
 
-    pub fn into_layer(self, layer_info: LayerInfo) -> GenericLayer<Self> {
-        GenericLayer::new(self, layer_info, &VOID, &TEXTURE_LAYER)
+    pub fn into_layer(self) -> GenericLayer<Self> {
+        GenericLayer::new(self, LayerTypeInfo::new("Cyclic Generator"), &VOID, &TEXTURE_LAYER)
     }
 }
 

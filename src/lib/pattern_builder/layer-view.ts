@@ -1,11 +1,18 @@
 type RandId = string;
 
 type BlendMode = 'Normal'|'AlphaMask';
-type LayerTypeId = 'texture'|'filter'|'texture-generator';
+type LayerIcon = 'Texture'|'Filter'|'Group'|'Transformer';
 
 type NumRange = {
     start: number,
     end: number,
+}
+
+type LayerTypeInfo = {
+    id: RandId,
+    name: string,
+    description: string|null,
+    icon: LayerIcon|null,
 }
 
 type AnyLayer = Layer<TextureLayerMetadata> |
@@ -13,7 +20,7 @@ type AnyLayer = Layer<TextureLayerMetadata> |
     Layer<TextureGeneratorLayerMetadata>;
 type Layer<T extends LayerMetadata> = {
     id: RandId,
-    type: LayerTypeId,
+    type: LayerTypeInfo,
     name: PropView<UnsupportedPropMetadata>,
     description: PropView<UnsupportedPropMetadata>,
     data: T,
@@ -32,6 +39,8 @@ type DisplayPane = 'Tree'|'Config'|'TreeAndConfig';
 type AnyPropView =
     PropView<NumPropMetadata> |
     PropView<NumVecPropMetadata> |
+    PropView<StringPropMetadata> |
+    PropView<OptionStringPropMetadata> |
     PropView<ColorPropMetadata> |
     PropView<LayerPropMetadata> |
     PropView<LayerVecPropMetadata> |
@@ -65,6 +74,16 @@ type NumVecPropMetadata = {
         sliders: [null | { range: NumRange, step: number }],
     }
 };
+type StringPropMetadata = {
+    type: 'string',
+    value: string,
+    data: {},
+}
+type OptionStringPropMetadata = {
+    type: 'option-string',
+    value: string|null,
+    data: {},
+}
 type ColorPropMetadata = {
     type: 'color',
     value: number[],
