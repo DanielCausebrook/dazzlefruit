@@ -13,17 +13,17 @@ use palette::encoding::Srgb;
 
 use palette::rgb::Rgb;
 use tauri::{AppHandle, Manager};
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, watch};
 
 use crate::neopixel_controller::NeopixelController;
 use crate::pattern_builder::component::frame::{Frame, ScalarPixel};
-use crate::pattern_builder::component::layer::standard_types::SCALAR_FRAME;
+use crate::pattern_builder::component::layer::standard_types::{SCALAR_FRAME, VOID};
 use crate::pattern_builder::library::core::group::Group;
 use pattern_builder::library::color::textures::solid_color::SolidColor;
 use pattern_builder::library::color::filters::alpha_mask::AlphaMask;
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
+use crate::pattern_builder::component::layer::{DisplayPane, Layer, LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::library::color::filters::map_hsl_component::MapHslComponent;
@@ -100,8 +100,71 @@ impl LayerCore for AddValue {
     }
 }
 
-fn get_test_pattern() -> Pattern {
-    let pattern = Pattern::new("Test Pattern", 350, 60.0);
+#[derive(Clone)]
+struct SinglePixel {
+    position: Prop<u64>,
+}
+
+impl SinglePixel {
+    pub fn new(num_pixels: u64) -> Self {
+        SinglePixel{
+            position: NumPropCore::new_slider(0, 0..num_pixels, 1).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+        }
+    }
+
+    pub fn into_layer(self) -> GenericLayer<Self> {
+        GenericLayer::new(self, LayerTypeInfo::new("Single Pixel").with_icon(LayerIcon::Texture), &VOID, &SCALAR_FRAME)
+    }
+}
+
+impl Component for SinglePixel {
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.position,
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.position
+        )
+    }
+}
+
+impl LayerCore for SinglePixel {
+    type Input = ();
+    type Output = Frame<ScalarPixel>;
+
+    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
+        let pos = *self.position.read();
+        (0..ctx.num_pixels()).map(|x| if x as u64 == pos {1.0} else {0.0})
+            .collect()
+    }
+}
+
+fn get_solid_color_pattern(pattern_context: watch::Receiver<PatternContext<'static>>) -> Pattern {
+    let pattern = Pattern::new("Solid Color", pattern_context, 60.0);
+
+    pattern.stack().write().push(SolidColor::new(Rgb::from_str("#0000FF").unwrap().into()).into_layer());
+
+    pattern
+}
+
+fn get_single_pixel_pattern(pattern_context: watch::Receiver<PatternContext<'static>>) -> Pattern {
+    let pattern = Pattern::new("Single Pixel", pattern_context, 60.0);
+
+    pattern.stack().write().push(SinglePixel::new(150).into_layer());
+
+
+    let transformer = ScalarToTexture::new();
+    transformer.texture().write().push(SolidColor::new(Rgb::from_str("#0000FF").unwrap().into()).into_layer());
+    pattern.stack().write().push(transformer.into_layer());
+
+    pattern
+}
+
+fn get_test_pattern(pattern_context: watch::Receiver<PatternContext<'static>>) -> Pattern {
+    let pattern = Pattern::new("Test Pattern", pattern_context, 60.0);
 
     let waves = Waves::new();
     *waves.wave1_scale().write() = 36.0;
@@ -122,29 +185,29 @@ fn get_test_pattern() -> Pattern {
     pattern
 }
 
-fn get_test_pattern_2() -> Pattern {
-    let pattern = Pattern::new("Stutter Pulse", 350, 60.0);
+fn get_test_pattern_2(pattern_context: watch::Receiver<PatternContext<'static>>) -> Pattern {
+    let pattern = Pattern::new("Stutter Pulse", pattern_context, 60.0);
 
     let green_group = Group::new();
     let noise = SimplexNoise::new(0.5);
     noise.scale().write().x = 1.0/40.0;
     green_group.stack().write().push(noise.into_layer());
     let into_texture = ScalarToTexture::new();
-    into_texture.texture().write().push(SolidColor::new(Rgb::from_str("#00DE2D").unwrap().into()).into_layer());
+    into_texture.texture().write().push(SolidColor::new(Rgb::from_str("#FEFF66").unwrap().into()).into_layer());
     *into_texture.lower_bound().write() = 0.3;
     *into_texture.upper_bound().write() = 0.35;
     green_group.stack().write().push(into_texture.into_layer());
-    pattern.stack().write().push(green_group.into_layer().with_name("Green BG"));
+    pattern.stack().write().push(green_group.into_layer().with_name("Pulses"));
 
     let sparkles_group = Group::new();
 
-    let range_a = ColorRange::new(Rgb::from_str("#B51A00").unwrap().into());
+    let range_a = ColorRange::new(Rgb::from_str("#B55748").unwrap().into());
     *range_a.variance().write() = 10.0;
     sparkles_group.stack().write().push(range_a.into_layer());
     let mask = AlphaMask::new();
     mask.stack().write().push(Sparkles::new(7.0, 3.0).into_layer());
     sparkles_group.stack().write().push(mask.into_layer());
-    pattern.stack().write().push(sparkles_group.into_layer().with_name("BG"));
+    pattern.stack().write().push(sparkles_group.into_layer().with_name("BG Sparkle"));
 
     let hue_shift = MapHslComponent::new_hue();
     hue_shift.map().write().push(AddValue::new(60.0).into_layer());
@@ -155,7 +218,7 @@ fn get_test_pattern_2() -> Pattern {
     pulse_group.stack().write().push(Stutter::new_partially_empty(0.026, 0.0, |ctx| Frame::empty(ctx.num_pixels())).into_layer(&SCALAR_FRAME));
     pulse_group.stack().write().push(Persistence::new(2.7).into_layer(&SCALAR_FRAME));
     let texture = ScalarToTexture::new();
-    texture.texture().write().push(SolidColor::new(Rgb::from_str("#FFB846").unwrap().into()).into_layer());
+    texture.texture().write().push(SolidColor::new(Rgb::from_str("#FFB846").unwrap().into()).into_layer().with_name("Gold"));
     pulse_group.stack().write().push(texture.into_layer());
 
     pattern.stack().write().push(pulse_group.into_layer().with_name("Stuttering Pulse"));
@@ -163,8 +226,8 @@ fn get_test_pattern_2() -> Pattern {
     pattern
 }
 
-fn get_test_pattern_3() -> Pattern {
-    let pattern = Pattern::new("Blocks", 350, 60.0);
+fn get_test_pattern_3(pattern_context: watch::Receiver<PatternContext<'static>>) -> Pattern {
+    let pattern = Pattern::new("Blocks", pattern_context, 60.0);
 
     let color: Alpha<Hsl<Srgb, f64>, f64> = Hsla::new(0.0, 1.0, 0.5, 1.0);
     let num_colors = 10;
@@ -173,6 +236,8 @@ fn get_test_pattern_3() -> Pattern {
         let layer = Group::new();
         let noise = SimplexNoise::new(0.8 - (0.3 * (x + 1) as f64 / num_colors as f64));
         noise.scale().write().x = 1.0/40.0;
+        noise.scale().write().y = 1.0/40.0;
+        noise.scale().write().z = 1.0/40.0;
         layer.stack().write().push(noise.into_layer());
         let into_texture = ScalarToTexture::new();
         let c2 = color.clone().with_hue(color.clone().hue.into_degrees() + (x as f64 * 360.0 / num_colors as f64));
@@ -197,11 +262,16 @@ fn main() {
                 connection: None,
                 app_handle: app.handle().clone(),
                 neopixel_controller: None,
-                pattern_builder: PatternBuilder::new(app.handle().clone()),
+                pattern_builder: PatternBuilder::new(app.handle().clone(), 150),
             };
-            state.pattern_builder.load_pattern(get_test_pattern());
-            state.pattern_builder.load_pattern(get_test_pattern_2());
-            state.pattern_builder.load_pattern(get_test_pattern_3());
+            if let Err(msg) = state.pattern_builder.load_position_map("/Users/danielcausebrook/Documents/Daniel/light_positions.json") {
+                eprintln!("Could not load position map. Error: {}", msg);
+            }
+            state.pattern_builder.load_pattern(get_solid_color_pattern(state.pattern_builder.pattern_context()));
+            state.pattern_builder.load_pattern(get_single_pixel_pattern(state.pattern_builder.pattern_context()));
+            state.pattern_builder.load_pattern(get_test_pattern(state.pattern_builder.pattern_context()));
+            state.pattern_builder.load_pattern(get_test_pattern_2(state.pattern_builder.pattern_context()));
+            state.pattern_builder.load_pattern(get_test_pattern_3(state.pattern_builder.pattern_context()));
             app.manage(LockedAppState(RwLock::new(state)));
             Ok(())
         })

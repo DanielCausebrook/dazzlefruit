@@ -1,14 +1,18 @@
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use futures::StreamExt;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri::async_runtime::{JoinHandle, spawn};
-use tokio::sync::{broadcast, RwLockReadGuard, RwLockWriteGuard};
+use tokio::sync::{broadcast, RwLockReadGuard, RwLockWriteGuard, watch};
 use tokio_stream::wrappers::WatchStream;
 use crate::{AppState, LockedAppState};
 use component::RandId;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::pattern::Pattern;
+use crate::pattern_builder::pattern_context::PatternContext;
+use crate::pattern_builder::pattern_context::position_map::PositionMap;
 use crate::tauri_events::PixelUpdatePayload;
 
 pub mod library;
@@ -20,15 +24,17 @@ pub mod pattern;
 pub struct PatternBuilder {
     open_patterns: HashMap<RandId, OpenPattern>,
     pattern_ordering: Vec<RandId>,
+    pattern_context: watch::Sender<PatternContext<'static>>,
     pattern_update_sender: broadcast::Sender<(RandId, Frame<ColorPixel>)>,
     app_handle: AppHandle,
 }
 
 impl PatternBuilder {
-    pub fn new(app_handle: AppHandle) -> PatternBuilder {
+    pub fn new(app_handle: AppHandle, num_pixels: usize) -> PatternBuilder {
         Self {
             open_patterns: HashMap::new(),
             pattern_ordering: vec![],
+            pattern_context: watch::channel(PatternContext::new(num_pixels)).0,
             pattern_update_sender: broadcast::channel(100).0,
             app_handle,
         }
@@ -65,6 +71,17 @@ impl PatternBuilder {
 
     pub fn pattern_update_receiver(&self) -> broadcast::Receiver<(RandId, Frame<ColorPixel>)> {
         self.pattern_update_sender.subscribe()
+    }
+
+    pub fn pattern_context(&self) -> watch::Receiver<PatternContext<'static>> {
+        self.pattern_context.subscribe()
+    }
+
+    pub fn load_position_map(&self, path: impl AsRef<Path>) -> Result<(), String> {
+        let file_contents = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        let position_map: PositionMap<'static> = serde_json::from_str(&*file_contents).map_err(|err| err.to_string())?;
+        self.pattern_context.send_modify(|ctx| ctx.set_position_map(position_map));
+        Ok(())
     }
 }
 

@@ -4,7 +4,7 @@ use rand::random;
 use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::frame::{Frame, ScalarPixel};
+use crate::pattern_builder::component::frame::{ColorPixel, Frame, Pixel, ScalarPixel};
 use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -71,14 +71,18 @@ impl LayerCore for SimplexNoise {
     fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Self::Output {
         (0..ctx.num_pixels())
             .map(|i| {
-                let pos = ctx.position_map().pos(i).unwrap();
-                let noise_pos = (pos - t * *self.travel_vel.read()).component_mul(&*self.scale.read());
-                self.simplex_noise.get([
-                    t * *self.flow_speed.read(),
-                    noise_pos.x,
-                    noise_pos.y,
-                    noise_pos.z,
-                ])
+                match ctx.position_map().pos(i) {
+                    Some(pos) => {
+                        let noise_pos = (pos - t * *self.travel_vel.read()).component_mul(&*self.scale.read());
+                        self.simplex_noise.get([
+                            t * *self.flow_speed.read(),
+                            noise_pos.x,
+                            noise_pos.y,
+                            noise_pos.z,
+                        ])
+                    },
+                    None => ScalarPixel::empty(),
+                }
             })
             .collect()
     }

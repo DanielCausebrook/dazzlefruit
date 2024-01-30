@@ -19,12 +19,10 @@ use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::pattern_context::PatternContext;
-use crate::pattern_builder::pattern_context::position_map::PositionMap;
 
 struct PatternRunnerTask {
     layer: Prop<LayerStack<(), Frame<ColorPixel>>>,
-    num_pixels: Prop<usize>,
-    position_map: Prop<PositionMap<'static>>,
+    pattern_context: watch::Receiver<PatternContext<'static>>,
     update_sender: watch::Sender<Frame<ColorPixel>>,
     running: Prop<bool>,
     speed: Prop<f64>,
@@ -77,14 +75,11 @@ impl PatternRunnerTask {
             );
             self.last_instant.send(now).unwrap();
 
-            let num_pixels = *self.num_pixels.read();
-            let mut ctx = PatternContext::new(num_pixels);
-            let guard = self.position_map.read();
-            ctx.set_position_map(guard.slice(0..num_pixels));
+            let ctx = self.pattern_context.borrow();
             let pixel_data = self.layer.write().next((), *self.t.borrow(), &ctx)
                 .unwrap_or_else(|err| {
                     eprintln!("Failed to evaluate stack: {:?}", err);
-                    Frame::<ColorPixel>::empty(num_pixels)
+                    Frame::<ColorPixel>::empty(ctx.num_pixels())
                 });
             self.update_sender.send(pixel_data).unwrap();
         }
@@ -100,22 +95,20 @@ pub struct Pattern {
     t: watch::Receiver<f64>,
     last_instant: watch::Receiver<Instant>,
     stack: Prop<LayerStack<(), Frame<ColorPixel>>>,
-    num_pixels: Prop<usize>,
-    position_map: Prop<PositionMap<'static>>,
+    pattern_context: watch::Receiver<PatternContext<'static>>,
     running: Prop<bool>,
     speed: Prop<f64>,
     property_view_map: HashMap<RandId, PropView>,
 }
 
 impl Pattern {
-    pub fn new(name: &str, num_pixels: usize, fps: f32) -> Self {
-        let (update_sender, update_receiver) = watch::channel(Frame::empty(num_pixels));
+    pub fn new(name: &str, pattern_context: watch::Receiver<PatternContext<'static>>, fps: f32) -> Self {
+        let (update_sender, update_receiver) = watch::channel(Frame::empty(pattern_context.borrow().num_pixels()));
         let (t_send, t_recv) = watch::channel(0.0);
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
         let animation_runner = PatternRunnerTask {
             layer: LayerStackPropCore::new(LayerStack::new(&VOID, &COLOR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
-            num_pixels: NumPropCore::new_slider(num_pixels, 0..500, 10).into_prop(PropertyInfo::new("Number of Pixels")),
-            position_map: RawPropCore::new(PositionMap::new_linear(num_pixels)).into_prop(PropertyInfo::new("Position Map")),
+            pattern_context: pattern_context.clone(),
             update_sender,
             running: RawPropCore::new(true).into_prop(PropertyInfo::new("Running")),
             speed: NumPropCore::new_slider(1.0, 0.0..100.0, 0.05).into_prop(PropertyInfo::new("Speed")),
@@ -130,8 +123,7 @@ impl Pattern {
             t: t_recv,
             last_instant: last_instant_recv,
             stack: animation_runner.layer.clone(),
-            num_pixels: animation_runner.num_pixels.clone(),
-            position_map: animation_runner.position_map.clone(),
+            pattern_context,
             running: animation_runner.running.clone(),
             speed: animation_runner.speed.clone(),
             animation_runner_handle: spawn(animation_runner.run(fps)),
@@ -194,8 +186,7 @@ impl Clone for Pattern {
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
         let animation_runner = PatternRunnerTask {
             layer: self.stack.fork(),
-            num_pixels: self.num_pixels.clone(),
-            position_map: self.position_map.clone(),
+            pattern_context: self.pattern_context.clone(),
             update_sender: update_send,
             running: self.running.clone(),
             speed: self.speed.clone(),
@@ -210,8 +201,7 @@ impl Clone for Pattern {
             t: t_recv,
             last_instant: last_instant_recv,
             stack: animation_runner.layer.clone(),
-            num_pixels: animation_runner.num_pixels.clone(),
-            position_map: animation_runner.position_map.clone(),
+            pattern_context: self.pattern_context.clone(),
             running: animation_runner.running.clone(),
             speed: animation_runner.speed.clone(),
             animation_runner_handle: spawn(animation_runner.run(self.fps)),
@@ -224,7 +214,6 @@ impl Component for Pattern {
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
             self.stack,
-            self.num_pixels,
             self.speed,
             self.running,
         )
@@ -233,7 +222,6 @@ impl Component for Pattern {
     fn detach(&mut self) {
         fork_properties!(
             self.stack,
-            self.num_pixels,
             self.speed,
             self.running,
         );
