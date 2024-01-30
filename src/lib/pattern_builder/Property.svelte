@@ -21,6 +21,7 @@
             }
         }
     }
+    const numVecLabels = ['x', 'y', 'z'];
 
     async function updateWith(valueStr) {
         try {
@@ -96,6 +97,9 @@
         {:else if propConfig.type === "num-vec"}
             {#each propConfig.value as _, i}
                 <div class="value input">
+                    {#if numVecLabels.length > i}
+                        <label for="{propConfig.id}" class="label">{numVecLabels[i]}</label>
+                    {/if}
                     {#if propConfig.data.sliders[i] !== null}
                         <input
                                 type="range"
@@ -106,6 +110,7 @@
                                 on:input={updateStringify}
                         />
                         <input
+                                id="{propConfig.id}"
                                 type="number"
                                 step="{propConfig.data.sliders[i].step}"
                                 min="{propConfig.data.sliders[i].range.start}"
@@ -115,6 +120,7 @@
                         />
                     {:else}
                         <input
+                                id="{propConfig.id}"
                                 type="number"
                                 bind:value={propConfig.value[i]}
                                 on:change={updateStringify}
@@ -160,6 +166,9 @@
         flex-flow: row nowrap;
         align-items: center;
         gap: 5px;
+        > .label {
+          color: hsl(0, 0%, 65%);
+        }
       }
 
       &.layer-vec, &.layer-stack {
