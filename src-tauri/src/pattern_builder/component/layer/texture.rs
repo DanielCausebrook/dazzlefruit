@@ -1,5 +1,5 @@
 use crate::pattern_builder::component::Component;
-use crate::pattern_builder::component::frame::{Blend, BlendMode, ColorPixel, Frame};
+use crate::pattern_builder::component::frame::{Blend, BlendMode, ColorPixel, Frame, Opacity};
 use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerIcon, LayerView, LayerTypeInfo};
 use crate::pattern_builder::component::layer::io_type::IOType;
 use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, COLOR_FRAME_OPTION};
@@ -16,7 +16,7 @@ pub struct TextureLayer {
     type_info: LayerTypeInfo,
     texture: Box<dyn LayerCore<Input=(), Output=Frame<ColorPixel>>>,
     blend_mode: Prop<BlendMode>,
-    opacity: Prop<f32>,
+    opacity: Prop<f64>,
     cache: Option<Frame<ColorPixel>>,
 }
 
@@ -39,7 +39,7 @@ impl TextureLayer {
         &self.blend_mode
     }
 
-    pub fn opacity(&self) -> &Prop<f32> {
+    pub fn opacity(&self) -> &Prop<f64> {
         &self.opacity
     }
 }
@@ -64,7 +64,8 @@ impl LayerCore for TextureLayer {
     type Output = Frame<ColorPixel>;
 
     fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
-        let frame = self.texture.next((), t, ctx);
+        let mut frame = self.texture.next((), t, ctx);
+        frame = frame.scale_opacity(*self.opacity.read());
         self.cache = Some(frame.clone());
         if let Some(active) = input {
             frame.blend(active, *self.blend_mode().read())
