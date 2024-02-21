@@ -1,0 +1,46 @@
+@use 'sass:color';
+@use 'sass:math';
+
+@function srgbToLinear($c) {
+  $c: math.div($c, 255.0);
+  @if $c <= 0.04045 {
+    @return math.div($c, 12.92);
+  } @else {
+    @return math.pow(math.div($c + 0.055, 1.055), 2.4); // ((S+0.055)/1.055)^2.4
+  }
+}
+
+@function linearToSrgb($c) {
+  @if $c <= 0.0031308 {
+    @return 255.0 * $c * 12.92;
+  } @else {
+    @return 255.0 * (1.055 * math.pow($c, math.div(1.0, 2.4)) - 0.055); // 1.055×L^(1/2.4) − 0.055
+  }
+}
+
+@function over($a, $b) {
+  $aA: color.alpha($a);
+  $aB: color.alpha($b);
+  @if $aA == 1.0 {
+    @return $a;
+  } @else if $aA == 0.0 {
+    @return $b;
+  } @else if $aB == 0.0 {
+    @return $a;
+  }
+
+  $rA: srgbToLinear(color.red($a));
+  $gA: srgbToLinear(color.green($a));
+  $bA: srgbToLinear(color.blue($a));
+  $rB: srgbToLinear(color.red($b));
+  $gB: srgbToLinear(color.green($b));
+  $bB: srgbToLinear(color.blue($b));
+
+  $aO: $aA + $aB * (1.0 - $aA);
+  $rO: math.div($rA * $aA + $rB * $aB * (1.0 - $aA), $aO);
+  $gO: math.div($gA * $aA + $gB * $aB * (1.0 - $aA), $aO);
+  $bO: math.div($bA * $aA + $bB * $aB * (1.0 - $aA), $aO);
+
+  @return rgba(linearToSrgb($rO), linearToSrgb($gO), linearToSrgb($bO), $aO);
+}
+

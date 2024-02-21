@@ -54,62 +54,72 @@
     </div>
 </div>
 <style lang="scss">
-    .df-layer {
-      display: flex;
-      flex-flow: column nowrap;
-      align-items: stretch;
+  @use "theme" as *;
 
-      &.selected {
-        background: hsla(220, 40%, 30%, 60%);
-        > .header {
-          font-weight: bold;
-          > .layer-name {
-            font-weight: 700;
-          }
-        }
-      }
+  .df-layer {
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: stretch;
+
+    &.selected {
+      background: color-over($accent-1, 0.1, $bg);
 
       > .header {
-        display: flex;
-        flex-flow: row nowrap;
-        align-items: center;
-        gap: 5px;
-        padding: 1px;
-        font-size: 90%;
-        cursor: pointer;
+        font-weight: bold;
 
-        &:hover {
-          background: hsla(0, 0%, 0%, 38%);
-          + .properties {
-            background: hsla(0, 0%, 10%, 38%);
-          }
-        }
-
-        > .layer-icon {
-          flex: 0 0 auto;
-          display: flex;
-        }
-        > .layer-type-name {
-          color: hsl(0, 0%, 80%);
-        }
         > .layer-name {
-          font-weight: 500;
+          font-weight: 700;
         }
-        > span {
-          flex: 1 1 auto;
-        }
-        > .config-icon {
-          flex: 0 0 auto;
-          display: flex;
-          padding: 2px;
-        }
-      }
-      > .properties {
-        display: flex;
-        flex-flow: column nowrap;
-        gap: 10px;
-        margin: 0;
-        padding-left: 13px;
       }
     }
+
+    > .header {
+      display: flex;
+      flex-flow: row nowrap;
+      align-items: center;
+      gap: 5px;
+      padding: 1px;
+      font-size: 90%;
+      cursor: pointer;
+
+      &:hover {
+        background: color-over($bg-m4, 0.35);
+
+        + .properties {
+          background: color-over($bg-m3, 0.35);
+        }
+      }
+
+      > .layer-icon {
+        flex: 0 0 auto;
+        display: flex;
+      }
+
+      > .layer-type-name {
+        color: $fg-1;
+      }
+
+      > .layer-name {
+        font-weight: 500;
+      }
+
+      > span {
+        flex: 1 1 auto;
+      }
+
+      > .config-icon {
+        flex: 0 0 auto;
+        display: flex;
+        padding: 2px;
+      }
+    }
+
+    > .properties {
+      display: flex;
+      flex-flow: column nowrap;
+      gap: 10px;
+      margin: 0;
+      padding-left: 13px;
+    }
+  }
 </style>

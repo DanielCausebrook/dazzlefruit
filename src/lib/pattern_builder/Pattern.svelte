@@ -2,10 +2,13 @@
     import Layer from "./Layer.svelte";
     import Property from "./Property.svelte";
     import {PatternInfo} from "./pattern-builder-view";
-    import {listen, type UnlistenFn} from "@tauri-apps/api/event";
+    import {listen, type UnlistenFn, type Event as TaruiEvent} from "@tauri-apps/api/event";
     import {onDestroy, onMount} from "svelte";
     import {invoke} from "@tauri-apps/api/tauri";
     import {PatternView} from "./pattern-view";
+    import { createEventDispatcher } from 'svelte';
+
+    const dispatch = createEventDispatcher();
 
     export let patternInfo: PatternInfo;
     let pattern: PatternView|null = null;
@@ -14,13 +17,14 @@
     onMount(async () => {
         let patternViewData = JSON.parse(await invoke("view_pattern", {id: patternInfo.id}));
         pattern = new PatternView(patternInfo, patternViewData);
-        unlistenPixelUpdate = await listen('pixel-update', async (event: Event<{id: RandId, pixel_data: [[number]]}>) => {
+        unlistenPixelUpdate = await listen('pixel-update', async (event: TaruiEvent<{id: RandId, pixel_data: [[number]]}>) => {
             if (event.payload.id === pattern.info.id) {
                 let colors = [];
                 for (const pixel of event.payload.pixel_data) {
                     colors.push(`rgba(${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${pixel[3]/2.55}%)`);
                 }
-                pattern.preview_colors = colors
+                pattern.preview_colors = colors;
+                dispatch("pixel-update", { pixelData: event.payload.pixel_data });
             }
         });
     });
@@ -59,6 +63,8 @@
     </div>
 {/if}
 <style lang="scss">
+  @use "theme" as *;
+
   .df-pattern {
     flex: 1 1 auto;
     display: flex;
@@ -70,11 +76,14 @@
       flex-flow: row nowrap;
       text-align: left;
       overflow: clip;
+      background: $bg-m2;
+      gap: 2px;
       > * {
         display: flex;
         flex-flow: column nowrap;
         overflow: clip;
-        border: 2px solid hsl(0, 0%, 10%);
+        //border: 2px solid $bg-3;
+        background: $bg;
         &.tree {
           flex: 0 1 300px;
         }

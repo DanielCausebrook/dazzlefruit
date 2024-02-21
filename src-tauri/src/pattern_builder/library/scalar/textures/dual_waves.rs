@@ -10,7 +10,7 @@ use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
-pub struct Waves {
+pub struct DualWaves {
     wave1_speed: Prop<f64>,
     wave1_scale: Prop<f64>,
     wave1_skew: Prop<f64>,
@@ -19,7 +19,7 @@ pub struct Waves {
     wave2_skew: Prop<f64>,
 }
 
-impl Waves {
+impl DualWaves {
     pub fn new() -> Self {
         Self {
             wave1_speed: NumPropCore::new_slider(9.0, -30.0..30.0, 0.1).into_prop(PropertyInfo::new("Wave 1 Speed")),
@@ -60,7 +60,7 @@ impl Waves {
     }
 }
 
-impl Component for Waves {
+impl Component for DualWaves {
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
             self.wave1_speed,
@@ -84,7 +84,7 @@ impl Component for Waves {
     }
 }
 
-impl LayerCore for Waves {
+impl LayerCore for DualWaves {
     type Input = ();
     type Output = Frame<ScalarPixel>;
     fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ScalarPixel> {

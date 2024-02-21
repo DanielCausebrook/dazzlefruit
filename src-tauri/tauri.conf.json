@@ -16,6 +16,10 @@
       "shell": {
         "all": false,
         "open": true
+      },
+      "dialog": {
+        "message": true,
+        "open": true
       }
     },
     "bundle": {
@@ -39,7 +43,8 @@
         "resizable": true,
         "title": "dazzlefruit",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "maximized": true
       }
     ]
   }

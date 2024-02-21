@@ -33,7 +33,7 @@ use crate::pattern_builder::library::generic::filters::stutter::Stutter;
 use crate::pattern_builder::library::scalar::textures::pulse::Pulse;
 use crate::pattern_builder::library::scalar::textures::simplex_noise::SimplexNoise;
 use crate::pattern_builder::library::scalar::textures::sparkles::Sparkles;
-use crate::pattern_builder::library::scalar::textures::waves::Waves;
+use crate::pattern_builder::library::scalar::textures::dual_waves::DualWaves;
 use crate::pattern_builder::library::transformers::scalar_to_dual_texture::ScalarToDualTexture;
 use crate::pattern_builder::library::transformers::scalar_to_texture::ScalarToTexture;
 use crate::pattern_builder::pattern::Pattern;
@@ -166,7 +166,7 @@ fn get_single_pixel_pattern(pattern_context: watch::Receiver<PatternContext<'sta
 fn get_test_pattern(pattern_context: watch::Receiver<PatternContext<'static>>) -> Pattern {
     let pattern = Pattern::new("Test Pattern", pattern_context, 60.0);
 
-    let waves = Waves::new();
+    let waves = DualWaves::new();
     *waves.wave1_scale().write() = 36.0;
     *waves.wave2_scale().write() = 45.0;
     pattern.stack().write().push(waves.into_layer());
@@ -191,6 +191,8 @@ fn get_test_pattern_2(pattern_context: watch::Receiver<PatternContext<'static>>)
     let green_group = Group::new();
     let noise = SimplexNoise::new(0.5);
     noise.scale().write().x = 1.0/40.0;
+    noise.scale().write().y = 1.0/40.0;
+    noise.scale().write().z = 1.0/40.0;
     green_group.stack().write().push(noise.into_layer());
     let into_texture = ScalarToTexture::new();
     into_texture.texture().write().push(SolidColor::new(Rgb::from_str("#FEFF66").unwrap().into()).into_layer());
@@ -235,9 +237,9 @@ fn get_test_pattern_3(pattern_context: watch::Receiver<PatternContext<'static>>)
     for x in 0..num_colors {
         let layer = Group::new();
         let noise = SimplexNoise::new(0.8 - (0.3 * (x + 1) as f64 / num_colors as f64));
-        noise.scale().write().x = 1.0/40.0;
-        noise.scale().write().y = 1.0/40.0;
-        noise.scale().write().z = 1.0/40.0;
+        noise.scale().write().x = 1.0/30.0;
+        noise.scale().write().y = 1.0/30.0;
+        noise.scale().write().z = 1.0/30.0;
         layer.stack().write().push(noise.into_layer());
         let into_texture = ScalarToTexture::new();
         let c2 = color.clone().with_hue(color.clone().hue.into_degrees() + (x as f64 * 360.0 / num_colors as f64));
@@ -264,9 +266,6 @@ fn main() {
                 neopixel_controller: None,
                 pattern_builder: PatternBuilder::new(app.handle().clone(), 150),
             };
-            if let Err(msg) = state.pattern_builder.load_position_map("/Users/danielcausebrook/Documents/Daniel/light_positions.json") {
-                eprintln!("Could not load position map. Error: {}", msg);
-            }
             state.pattern_builder.load_pattern(get_solid_color_pattern(state.pattern_builder.pattern_context()));
             state.pattern_builder.load_pattern(get_single_pixel_pattern(state.pattern_builder.pattern_context()));
             state.pattern_builder.load_pattern(get_test_pattern(state.pattern_builder.pattern_context()));
@@ -283,6 +282,8 @@ fn main() {
             pattern_builder::view_open_patterns,
             pattern_builder::view_pattern,
             pattern_builder::update_property,
+            pattern_builder::position_map,
+            pattern_builder::load_position_map,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,0 +1,52 @@
+@use 'sass:color';
+@use 'alpha_compositing';
+
+$bg-4: hsl(0, 0%, 30%);
+$bg-3: hsl(0, 0%, 27%);
+$bg-2: hsl(0, 0%, 24%);
+$bg-1: hsl(0, 0%, 21%);
+$bg: hsl(0, 0%, 18%);
+$bg-m1: hsl(0, 0%, 15%);
+$bg-m2: hsl(0, 0%, 12%);
+$bg-m3: hsl(0, 0%, 9%);
+$bg-m4: hsl(0, 0%, 6%);
+
+$fg-3: hsl(0, 0%, 70%);
+$fg-2: hsl(0, 0%, 75%);
+$fg-1: hsl(0, 0%, 80%);
+$fg: hsl(0, 0%, 85%);
+$fg-m1: hsl(0, 0%, 90%);
+$fg-m2: hsl(0, 0%, 95%);
+
+
+$accent-2: hsl(240, 80%, 60%);
+$accent-1: hsl(240, 80%, 65%);
+$accent: hsl(240, 80%, 70%);
+$accent-m1: hsl(240, 80%, 75%);
+$accent-m2: hsl(240, 80%, 80%);
+
+$ok-fg-3: hsl(120, 50%, 70%);
+$ok-fg-2: hsl(120, 50%, 75%);
+$ok-fg-1: hsl(120, 50%, 80%);
+$ok-fg: hsl(120, 50%, 85%);
+$ok-fg-m1: hsl(120, 50%, 90%);
+$ok-fg-m2: hsl(120, 50%, 95%);
+
+$warn-fg-3: hsl(40, 50%, 70%);
+$warn-fg-2: hsl(40, 50%, 75%);
+$warn-fg-1: hsl(40, 50%, 80%);
+$warn-fg: hsl(40, 50%, 85%);
+$warn-fg-m1: hsl(40, 50%, 90%);
+$warn-fg-m2: hsl(40, 50%, 95%);
+
+$err-fg-3: hsl(0, 50%, 70%);
+$err-fg-2: hsl(0, 50%, 75%);
+$err-fg-1: hsl(0, 50%, 80%);
+$err-fg: hsl(0, 50%, 85%);
+$err-fg-m1: hsl(0, 50%, 90%);
+$err-fg-m2: hsl(0, 50%, 95%);
+
+@function color-over($color, $alpha, $bg: rgba(0, 0, 0, 0%)) {
+  $aC: color.alpha($color);
+  @return alpha_compositing.over(color.change($color, $alpha: $alpha * $aC), $bg);
+}

@@ -1,3 +1,5 @@
+@use 'theme' as *;
+
 :root {
   height: 100%;
 
@@ -130,8 +132,8 @@ select {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+    color: $fg-m2;
+    background-color: $bg;
   }
 
   a:hover {
@@ -141,8 +143,8 @@ select {
   input,
   button,
   select {
-    color: #d0d0d0;
-    background-color: #0f0f0f98;
+    color: $fg-1;
+    background-color: $bg-m4;
   }
 
   button:active {

@@ -1,20 +1,20 @@
 <script lang="ts">
   import ConnectionBar from "./lib/ConnectionBar.svelte";
   import {onDestroy, onMount} from "svelte";
-  import {listen} from "@tauri-apps/api/event";
+  import {listen, type UnlistenFn, type Event as TauriEvent} from "@tauri-apps/api/event";
   import PatternBuilder from "./lib/PatternBuilder.svelte";
   import type {PatternBuilderView} from "./lib/pattern_builder/pattern-builder-view.js";
 
   let connection: {ip: string} | null = null;
-  let unlistenOpen, unlistenClose;
+  let unlistenOpen: UnlistenFn, unlistenClose : UnlistenFn;
 
   let patternBuilder: PatternBuilderView|null = null;
 
   onMount(async () => {
-    unlistenOpen = await listen('connection-open', (event: Event<{ip: string}>) => {
+    unlistenOpen = await listen('connection-open', (event: TauriEvent<{ip: string}>) => {
       connection = event.payload;
     });
-    unlistenOpen = await listen('connection-close', (event: Event<{}>) => {
+    unlistenClose = await listen('connection-close', (event: TauriEvent<{}>) => {
       connection = null;
     });
   });

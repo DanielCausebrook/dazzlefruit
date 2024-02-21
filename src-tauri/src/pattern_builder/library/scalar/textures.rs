@@ -1,4 +1,4 @@
 pub mod sparkles;
 pub mod simplex_noise;
-pub mod waves;
+pub mod dual_waves;
 pub mod pulse;

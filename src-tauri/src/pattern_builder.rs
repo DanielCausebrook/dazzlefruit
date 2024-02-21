@@ -127,3 +127,24 @@ pub async fn update_property(pattern_id: RandId, prop_id: RandId, value: String,
         .pattern
         .try_update_prop(prop_id, value)
 }
+
+#[tauri::command]
+pub async fn position_map(tauri_state: tauri::State<'_, LockedAppState>) -> Result<String, String> {
+    let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
+    let pattern_context = state.pattern_builder.pattern_context.borrow();
+    Ok(
+        serde_json::to_string(&pattern_context.position_map())
+            .expect("Failed converting Position Map to string.")
+    )
+}
+
+#[tauri::command]
+pub async fn load_position_map(path: String, tauri_state: tauri::State<'_, LockedAppState>) -> Result<String, String> {
+    let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
+    state.pattern_builder.load_position_map(path)?;
+    let pattern_context = state.pattern_builder.pattern_context.borrow();
+    Ok(
+        serde_json::to_string(&pattern_context.position_map())
+            .expect("Failed converting Position Map to string.")
+    )
+}
