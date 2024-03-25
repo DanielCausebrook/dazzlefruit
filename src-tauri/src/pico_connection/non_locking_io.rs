@@ -18,12 +18,6 @@ impl<T: AsyncRead + Unpin> Future for NonLockingReadFuture<'_, '_, T> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         Pin::new(self.locked_io.write().unwrap().deref_mut()).poll_read(cx, self.buf)
-        // match Box::pin(self.locked_io.write()).as_mut().poll(cx) {
-        //     Poll::Ready(mut io) => {
-        //         Pin::new(io.deref_mut()).poll_read(cx, self.buf)
-        //     }
-        //     Poll::Pending => Poll::Pending
-        // }
     }
 }
 
@@ -48,12 +42,6 @@ impl<T: AsyncWrite + Unpin> Future for NonLockingWriteFuture<'_, T> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>,) -> Poll<Self::Output> {
         Pin::new(self.locked_io.write().unwrap().deref_mut()).poll_write(cx, self.buf)
-        // match Box::pin(self.locked_io.write()).as_mut().poll(cx) {
-        //     Poll::Ready(mut io) => {
-        //         Pin::new(io.deref_mut()).poll_write(cx, self.buf)
-        //     }
-        //     Poll::Pending => Poll::Pending
-        // }
     }
 }
 
@@ -78,12 +66,6 @@ impl Future for NonLockingSendFuture<'_> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>,) -> Poll<Self::Output> {
         Pin::new(self.locked_io.write().unwrap().deref_mut()).poll_send(cx, self.buf)
-        // match Box::pin(self.locked_io.write()).as_mut().poll(cx) {
-        //     Poll::Ready(mut io) => {
-        //         Pin::new(io.deref_mut()).poll_send(cx, self.buf)
-        //     }
-        //     Poll::Pending => Poll::Pending
-        // }
     }
 }
 
