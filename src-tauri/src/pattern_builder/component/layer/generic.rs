@@ -1,4 +1,3 @@
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerTypeInfo};
 use crate::pattern_builder::component::layer::io_type::IOType;
 use crate::pattern_builder::component::property::PropView;
@@ -40,7 +39,14 @@ impl<C> Clone for GenericLayer<C> where C: LayerCore + Clone {
     }
 }
 
-impl<C> Component for GenericLayer<C> where C: LayerCore + Clone {
+impl<C> LayerCore for GenericLayer<C> where C: LayerCore + Clone {
+    type Input = C::Input;
+    type Output = C::Output;
+
+    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
+        self.core.next(input, t, ctx)
+    }
+
     fn view_properties(&self) -> Vec<PropView> {
         self.core.view_properties()
     }
@@ -48,15 +54,6 @@ impl<C> Component for GenericLayer<C> where C: LayerCore + Clone {
     fn detach(&mut self) {
         self.core.detach();
         self.info.detach();
-    }
-}
-
-impl<C> LayerCore for GenericLayer<C> where C: LayerCore + Clone {
-    type Input = C::Input;
-    type Output = C::Output;
-
-    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
-        self.core.next(input, t, ctx)
     }
 }
 

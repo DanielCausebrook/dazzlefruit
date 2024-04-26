@@ -1,4 +1,3 @@
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{Blend, BlendMode, ColorPixel, Frame, Opacity};
 use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerIcon, LayerView, LayerTypeInfo};
 use crate::pattern_builder::component::layer::io_type::IOType;
@@ -44,21 +43,6 @@ impl TextureLayer {
     }
 }
 
-impl Component for TextureLayer {
-    fn view_properties(&self) -> Vec<PropView> {
-        self.texture.view_properties().into_iter()
-            .chain([self.opacity.view()])
-            .collect()
-    }
-
-    fn detach(&mut self) {
-        self.info.detach();
-        self.texture.detach();
-        self.blend_mode = self.blend_mode.fork();
-        self.opacity = self.opacity.fork();
-    }
-}
-
 impl LayerCore for TextureLayer {
     type Input = Option<Frame<ColorPixel>>;
     type Output = Frame<ColorPixel>;
@@ -72,6 +56,19 @@ impl LayerCore for TextureLayer {
         } else {
             frame
         }
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        self.texture.view_properties().into_iter()
+            .chain([self.opacity.view()])
+            .collect()
+    }
+
+    fn detach(&mut self) {
+        self.info.detach();
+        self.texture.detach();
+        self.blend_mode = self.blend_mode.fork();
+        self.opacity = self.opacity.fork();
     }
 }
 

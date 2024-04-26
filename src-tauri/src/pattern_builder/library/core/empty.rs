@@ -1,5 +1,4 @@
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::PropView;
@@ -25,7 +24,13 @@ impl<T> Clone for Empty<T> where T: Send + Sync + 'static {
     }
 }
 
-impl<T> Component for Empty<T> where T: Send + Sync + 'static {
+impl LayerCore for Empty<EmptyTexture> {
+    type Input = ();
+    type Output = Frame<ColorPixel>;
+    fn next(&mut self, _: (), _t: f64, ctx: &PatternContext) -> Frame<ColorPixel> {
+        Frame::<ColorPixel>::empty(ctx.num_pixels())
+    }
+
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!()
     }
@@ -35,18 +40,18 @@ impl<T> Component for Empty<T> where T: Send + Sync + 'static {
     }
 }
 
-impl LayerCore for Empty<EmptyTexture> {
-    type Input = ();
-    type Output = Frame<ColorPixel>;
-    fn next(&mut self, _: (), _t: f64, ctx: &PatternContext) -> Frame<ColorPixel> {
-        Frame::<ColorPixel>::empty(ctx.num_pixels())
-    }
-}
-
 impl LayerCore for Empty<EmptyFilter> {
     type Input = Frame<ColorPixel>;
     type Output = Frame<ColorPixel>;
     fn next(&mut self, active: Frame<ColorPixel>, _t: f64, _ctx: &PatternContext) -> Frame<ColorPixel> {
         active
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!()
+    }
+
+    fn detach(&mut self) {
+        fork_properties!();
     }
 }

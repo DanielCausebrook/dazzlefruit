@@ -1,5 +1,4 @@
 use nalgebra_glm::smoothstep;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -42,7 +41,21 @@ impl Pulse {
     }
 }
 
-impl Component for Pulse {
+impl LayerCore for Pulse {
+    type Input = ();
+    type Output = Frame<ScalarPixel>;
+    fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ScalarPixel> {
+        let pulse_pos = 0.5 * (triangle_sin(*self.smoothness.read(), *self.period.read(), t) + 1.0) * (ctx.num_pixels() as f64 - *self.width.read());
+        let step1 = [pulse_pos - 0.5, pulse_pos + 0.5];
+        let step2 = [pulse_pos + *self.width.read() - 0.5, pulse_pos + *self.width.read() + 0.5];
+        (0..ctx.num_pixels()).into_iter()
+            .map(|x| x as f64)
+            .map(|x| {
+                smoothstep(step1[0], step1[1], x) - smoothstep(step2[0], step2[1], x)
+            })
+            .collect()
+    }
+
     fn view_properties(&self) -> Vec<PropView> {
         view_properties![
             self.period,
@@ -57,21 +70,5 @@ impl Component for Pulse {
             self.width,
             self.smoothness,
         );
-    }
-}
-
-impl LayerCore for Pulse {
-    type Input = ();
-    type Output = Frame<ScalarPixel>;
-    fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ScalarPixel> {
-        let pulse_pos = 0.5 * (triangle_sin(*self.smoothness.read(), *self.period.read(), t) + 1.0) * (ctx.num_pixels() as f64 - *self.width.read());
-        let step1 = [pulse_pos - 0.5, pulse_pos + 0.5];
-        let step2 = [pulse_pos + *self.width.read() - 0.5, pulse_pos + *self.width.read() + 0.5];
-        (0..ctx.num_pixels()).into_iter()
-            .map(|x| x as f64)
-            .map(|x| {
-                smoothstep(step1[0], step1[1], x) - smoothstep(step2[0], step2[1], x)
-            })
-            .collect()
     }
 }

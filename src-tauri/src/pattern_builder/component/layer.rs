@@ -3,9 +3,9 @@ use dyn_clone::{clone_trait_object, DynClone};
 use rand::random;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::RandId;
-use crate::pattern_builder::component::layer::io_type::IOType;
+use crate::pattern_builder::component::layer::io_type::{ErasedIOType, ErasedIOValue, IOType};
+use crate::pattern_builder::component::layer::layer_stack::StackTypeError;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::string::OptionStringPropCore;
@@ -17,19 +17,29 @@ pub mod io_type;
 pub mod generic;
 pub mod scalar_texture;
 
-pub trait LayerCore: Component + Send + Sync + DynClone {
+pub trait LayerCore: Send + Sync + DynClone + 'static {
     type Input;
     type Output;
 
     fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output;
+    fn view_properties(&self) -> Vec<PropView>;
+    fn detach(&mut self);
 }
 clone_trait_object!(<I, O> LayerCore<Input=I, Output=O>);
+
 impl<T> LayerCore for Box<T> where T: LayerCore + Clone + ?Sized {
     type Input = T::Input;
     type Output = T::Output;
 
     fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
         self.as_mut().next(input, t, ctx)
+    }
+    fn view_properties(&self) -> Vec<PropView> {
+        self.as_ref().view_properties()
+    }
+
+    fn detach(&mut self) {
+        self.as_mut().detach()
     }
 }
 
@@ -77,6 +87,49 @@ impl<T> Layer for Box<T> where T: Layer + Clone + ?Sized {
     }
     fn view(&self) -> LayerView {
         self.as_ref().view()
+    }
+}
+
+pub trait ErasedLayer: Send + Sync + DynClone + 'static {
+    fn input_type(&self) -> &dyn ErasedIOType;
+    fn output_type(&self) -> &dyn ErasedIOType;
+    fn info(&self) -> &LayerInfo;
+    fn type_info(&self) -> &LayerTypeInfo;
+    fn try_next(&mut self, input: ErasedIOValue, t: f64, ctx: &PatternContext) -> Result<ErasedIOValue, StackTypeError>;
+    fn view(&self) -> LayerView;
+    fn detach(&mut self);
+}
+clone_trait_object!(ErasedLayer);
+
+impl<L> ErasedLayer for L where L: Layer + Clone {
+    fn input_type(&self) -> &dyn ErasedIOType {
+        L::input_type(self)
+    }
+
+    fn output_type(&self) -> &dyn ErasedIOType {
+        L::output_type(self)
+    }
+
+    fn info(&self) -> &LayerInfo {
+        L::info(self)
+    }
+
+    fn type_info(&self) -> &LayerTypeInfo {
+        L::type_info(self)
+    }
+
+    fn try_next(&mut self, input: ErasedIOValue, t: f64, ctx: &PatternContext) -> Result<ErasedIOValue, StackTypeError> {
+        let input = input.try_into(self.input_type())
+            .map_err(|err| StackTypeError::LayerInput(self.info().id(), err))?;
+        Ok(ErasedIOValue::new(self.next(input, t, ctx), self.output_type()))
+    }
+
+    fn view(&self) -> LayerView {
+        L::view(self)
+    }
+
+    fn detach(&mut self) {
+        L::detach(self);
     }
 }
 

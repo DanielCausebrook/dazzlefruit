@@ -7,8 +7,8 @@ use tauri::async_runtime::{JoinHandle, spawn};
 use tokio::sync::watch;
 use tokio::time::{interval, MissedTickBehavior};
 
-use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::{Component, RandId};
+use crate::{fork_properties};
+use crate::pattern_builder::component::{RandId};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerView};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
@@ -171,6 +171,14 @@ impl Pattern {
             *self.t.borrow()
         }
     }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.stack,
+            self.speed,
+            self.running,
+        );
+    }
 }
 
 impl Drop for Pattern {
@@ -209,26 +217,6 @@ impl Clone for Pattern {
         }
     }
 }
-
-impl Component for Pattern {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(
-            self.stack,
-            self.speed,
-            self.running,
-        )
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.stack,
-            self.speed,
-            self.running,
-        );
-    }
-}
-
-
 
 #[derive(Serialize)]
 pub struct PatternView {

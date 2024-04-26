@@ -21,7 +21,6 @@ use crate::pattern_builder::component::layer::standard_types::{SCALAR_FRAME, VOI
 use crate::pattern_builder::library::core::group::Group;
 use pattern_builder::library::color::textures::solid_color::SolidColor;
 use pattern_builder::library::color::filters::alpha_mask::AlphaMask;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::generic::GenericLayer;
 use crate::pattern_builder::component::layer::{DisplayPane, Layer, LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
@@ -79,16 +78,6 @@ impl AddValue {
     }
 }
 
-impl Component for AddValue {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(self.speed)
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(self.speed);
-    }
-}
-
 impl LayerCore for AddValue {
     type Input = Frame<ScalarPixel>;
     type Output = Frame<ScalarPixel>;
@@ -97,6 +86,14 @@ impl LayerCore for AddValue {
         input.into_iter()
             .map(|value| value + t * *self.speed.read())
             .collect()
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(self.speed)
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(self.speed);
     }
 }
 
@@ -117,7 +114,16 @@ impl SinglePixel {
     }
 }
 
-impl Component for SinglePixel {
+impl LayerCore for SinglePixel {
+    type Input = ();
+    type Output = Frame<ScalarPixel>;
+
+    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
+        let pos = *self.position.read();
+        (0..ctx.num_pixels()).map(|x| if x as u64 == pos {1.0} else {0.0})
+            .collect()
+    }
+
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
             self.position,
@@ -128,17 +134,6 @@ impl Component for SinglePixel {
         fork_properties!(
             self.position
         )
-    }
-}
-
-impl LayerCore for SinglePixel {
-    type Input = ();
-    type Output = Frame<ScalarPixel>;
-
-    fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
-        let pos = *self.position.read();
-        (0..ctx.num_pixels()).map(|x| if x as u64 == pos {1.0} else {0.0})
-            .collect()
     }
 }
 

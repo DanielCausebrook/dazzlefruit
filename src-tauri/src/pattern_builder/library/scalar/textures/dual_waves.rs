@@ -3,7 +3,6 @@ use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::math_functions::skew_sin;
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
@@ -60,7 +59,21 @@ impl DualWaves {
     }
 }
 
-impl Component for DualWaves {
+impl LayerCore for DualWaves {
+    type Input = ();
+    type Output = Frame<ScalarPixel>;
+    fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ScalarPixel> {
+        (0..ctx.num_pixels()).map(|x_int| {
+            let x = x_int as f64;
+            // let t = t + ((x/10.0 + t).sin() / 2.0);
+            let mut wave1_val = skew_sin(*self.wave1_skew.read(), 1.0, (x + *self.wave1_speed.read() * t) / *self.wave1_scale.read());
+            let mut wave2_val = skew_sin(*self.wave2_skew.read(), 1.0, (x + *self.wave2_speed.read() * t) / *self.wave2_scale.read());
+            wave1_val = wave1_val / 2.0 + 0.5;
+            wave2_val = wave2_val / 2.0 + 0.5;
+            (wave1_val + wave2_val) / 2.0
+        }).collect()
+    }
+
     fn view_properties(&self) -> Vec<PropView> {
         view_properties!(
             self.wave1_speed,
@@ -81,22 +94,6 @@ impl Component for DualWaves {
             self.wave2_scale,
             self.wave2_skew,
         );
-    }
-}
-
-impl LayerCore for DualWaves {
-    type Input = ();
-    type Output = Frame<ScalarPixel>;
-    fn next(&mut self, _: (), t: f64, ctx: &PatternContext) -> Frame<ScalarPixel> {
-        (0..ctx.num_pixels()).map(|x_int| {
-            let x = x_int as f64;
-            // let t = t + ((x/10.0 + t).sin() / 2.0);
-            let mut wave1_val = skew_sin(*self.wave1_skew.read(), 1.0, (x + *self.wave1_speed.read() * t) / *self.wave1_scale.read());
-            let mut wave2_val = skew_sin(*self.wave2_skew.read(), 1.0, (x + *self.wave2_speed.read() * t) / *self.wave2_scale.read());
-            wave1_val = wave1_val / 2.0 + 0.5;
-            wave2_val = wave2_val / 2.0 + 0.5;
-            (wave1_val + wave2_val) / 2.0
-        }).collect()
     }
 }
 

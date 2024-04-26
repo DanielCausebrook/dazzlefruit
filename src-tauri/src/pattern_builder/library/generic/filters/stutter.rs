@@ -1,5 +1,4 @@
 use num_traits::Zero;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
@@ -43,30 +42,6 @@ impl<T> Stutter<T> where T: Clone + Send + Sync + 'static {
     }
 }
 
-impl<T> Component for Stutter<T> where T: Clone + Send + Sync + 'static {
-    fn view_properties(&self) -> Vec<PropView> {
-        if let Some((prop, _)) = &self.show_for_config {
-            view_properties!(
-                self.period,
-                prop,
-            )
-        } else {
-            view_properties!(
-                self.period
-            )
-        }
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.period,
-        );
-        if let Some((prop, _)) = &mut self.show_for_config {
-            fork_properties!(*prop);
-        }
-    }
-}
-
 impl<T> LayerCore for Stutter<T> where T: Clone + Send + Sync + 'static {
     type Input = T;
     type Output = T;
@@ -98,6 +73,28 @@ impl<T> LayerCore for Stutter<T> where T: Clone + Send + Sync + 'static {
                 self.frame = Some(input.clone());
                 input
             }
+        }
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        if let Some((prop, _)) = &self.show_for_config {
+            view_properties!(
+                self.period,
+                prop,
+            )
+        } else {
+            view_properties!(
+                self.period
+            )
+        }
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.period,
+        );
+        if let Some((prop, _)) = &mut self.show_for_config {
+            fork_properties!(*prop);
         }
     }
 }

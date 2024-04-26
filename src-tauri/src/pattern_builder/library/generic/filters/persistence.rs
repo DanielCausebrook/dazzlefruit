@@ -1,4 +1,3 @@
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
@@ -33,20 +32,6 @@ impl<T> Persistence<T> where T: Blend + Opacity + Clone {
     }
 }
 
-impl<T> Component for Persistence<T> where T: Blend + Opacity + Clone + Send + Sync + 'static {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(
-            self.decay_rate,
-        )
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.decay_rate,
-        );
-    }
-}
-
 impl<T> LayerCore for Persistence<T> where T: Blend + Opacity + Clone + Send + Sync + 'static {
     type Input = T;
     type Output = T;
@@ -63,5 +48,17 @@ impl<T> LayerCore for Persistence<T> where T: Blend + Opacity + Clone + Send + S
         self.state = Some(result.clone());
 
         result
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.decay_rate,
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.decay_rate,
+        );
     }
 }

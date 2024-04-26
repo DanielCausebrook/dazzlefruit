@@ -1,4 +1,3 @@
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{Layer, LayerView};
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
 use crate::pattern_builder::component::layer::texture::TextureLayer;

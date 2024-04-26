@@ -1,10 +1,9 @@
 use nalgebra_glm::DVec3;
 use noise::{NoiseFn, OpenSimplex};
 use rand::random;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::frame::{ColorPixel, Frame, Pixel, ScalarPixel};
+use crate::pattern_builder::component::frame::{Frame, Pixel, ScalarPixel};
 use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -46,24 +45,6 @@ impl SimplexNoise {
     }
 }
 
-impl Component for SimplexNoise {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(
-            self.flow_speed,
-            self.scale,
-            self.travel_vel,
-        )
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.flow_speed,
-            self.scale,
-            self.travel_vel,
-        );
-    }
-}
-
 impl LayerCore for SimplexNoise {
     type Input = ();
     type Output = Frame<ScalarPixel>;
@@ -86,4 +67,20 @@ impl LayerCore for SimplexNoise {
             })
             .collect()
     }
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.flow_speed,
+            self.scale,
+            self.travel_vel,
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.flow_speed,
+            self.scale,
+            self.travel_vel,
+        );
+    }
+
 }

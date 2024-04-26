@@ -1,50 +1,11 @@
 use std::fmt::{Debug, Formatter};
-use dyn_clone::{clone_trait_object, DynClone};
 use itertools::{FoldWhile, Itertools};
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
 use crate::pattern_builder::component::RandId;
 use crate::pattern_builder::component::layer::io_type::{ErasedIOType, ErasedIOValue, IOType, NoMappingError};
-use crate::pattern_builder::component::layer::{Layer, LayerInfo, LayerView};
+use crate::pattern_builder::component::layer::{ErasedLayer, Layer, LayerView};
 use crate::pattern_builder::pattern_context::PatternContext;
-
-trait ErasedLayer: Send + Sync + DynClone + 'static {
-    fn input_type(&self) -> &dyn ErasedIOType;
-    fn output_type(&self) -> &dyn ErasedIOType;
-    fn info(&self) -> &LayerInfo;
-    fn try_next(&mut self, input: ErasedIOValue, t: f64, ctx: &PatternContext) -> Result<ErasedIOValue, StackTypeError>;
-    fn view(&self) -> LayerView;
-    fn detach(&mut self);
-}
-clone_trait_object!(ErasedLayer);
-
-impl<L> ErasedLayer for L where L: Layer + Clone {
-    fn input_type(&self) -> &dyn ErasedIOType {
-        L::input_type(self)
-    }
-
-    fn output_type(&self) -> &dyn ErasedIOType {
-        L::output_type(self)
-    }
-
-    fn info(&self) -> &LayerInfo {
-        L::info(self)
-    }
-
-    fn try_next(&mut self, input: ErasedIOValue, t: f64, ctx: &PatternContext) -> Result<ErasedIOValue, StackTypeError> {
-        let input = input.try_into(self.input_type())
-            .map_err(|err| StackTypeError::LayerInput(self.info().id(), err))?;
-        Ok(ErasedIOValue::new(self.next(input, t, ctx), self.output_type()))
-    }
-
-    fn view(&self) -> LayerView {
-        L::view(self)
-    }
-
-    fn detach(&mut self) {
-        L::detach(self);
-    }
-}
 
 pub struct LayerStack<I, O> where I: 'static, O: 'static {
     stack: Vec<Box<dyn ErasedLayer>>,

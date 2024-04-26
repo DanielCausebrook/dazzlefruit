@@ -1,6 +1,5 @@
 use rand::distributions::{Distribution, Uniform};
 use rand_distr::Poisson;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
@@ -53,23 +52,6 @@ impl Sparkles {
     }
 }
 
-impl Component for Sparkles {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(
-            self.density,
-            self.decay_rate
-        )
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.density,
-            self.decay_rate
-        );
-        self.sync_decay_rate();
-    }
-}
-
 impl LayerCore for Sparkles {
     type Input = ();
     type Output = Frame<ScalarPixel>;
@@ -98,5 +80,20 @@ impl LayerCore for Sparkles {
             self.weights[x] /= 1.0 + strength;
         }
         self.persistence.next(values.into(), t, ctx)
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.density,
+            self.decay_rate
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.density,
+            self.decay_rate
+        );
+        self.sync_decay_rate();
     }
 }

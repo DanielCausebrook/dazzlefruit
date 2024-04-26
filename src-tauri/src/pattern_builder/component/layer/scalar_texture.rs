@@ -1,4 +1,3 @@
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::frame::{Blend, BlendMode, Frame, ScalarPixel};
 use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerIcon, LayerView, LayerTypeInfo};
 use crate::pattern_builder::component::layer::io_type::IOType;
@@ -35,18 +34,6 @@ impl ScalarTextureLayer {
     }
 }
 
-impl Component for ScalarTextureLayer {
-    fn view_properties(&self) -> Vec<PropView> {
-        self.texture.view_properties()
-    }
-
-    fn detach(&mut self) {
-        self.info.detach();
-        self.texture.detach();
-        self.blend_mode = self.blend_mode.fork();
-    }
-}
-
 impl LayerCore for ScalarTextureLayer {
     type Input = Option<Frame<ScalarPixel>>;
     type Output = Frame<ScalarPixel>;
@@ -58,6 +45,16 @@ impl LayerCore for ScalarTextureLayer {
         } else {
             frame
         }
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        self.texture.view_properties()
+    }
+
+    fn detach(&mut self) {
+        self.info.detach();
+        self.texture.detach();
+        self.blend_mode = self.blend_mode.fork();
     }
 }
 

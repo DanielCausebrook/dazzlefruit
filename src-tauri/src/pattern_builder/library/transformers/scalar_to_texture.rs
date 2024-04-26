@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
@@ -48,24 +47,6 @@ impl ScalarToTexture {
     }
 }
 
-impl Component for ScalarToTexture {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(
-            self.texture,
-            self.lower_bound,
-            self.upper_bound,
-        )
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.texture,
-            self.lower_bound,
-            self.upper_bound,
-        );
-    }
-}
-
 impl LayerCore for ScalarToTexture {
     type Input = Frame<ScalarPixel>;
     
@@ -81,5 +62,21 @@ impl LayerCore for ScalarToTexture {
             pixel.alpha = pixel.alpha * amount;
         }
         frame
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.texture,
+            self.lower_bound,
+            self.upper_bound,
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.texture,
+            self.lower_bound,
+            self.upper_bound,
+        );
     }
 }

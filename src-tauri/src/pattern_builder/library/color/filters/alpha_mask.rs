@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
@@ -31,16 +30,6 @@ impl AlphaMask {
     }
 }
 
-impl Component for AlphaMask {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(self.mask)
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(self.mask);
-    }
-}
-
 impl LayerCore for AlphaMask {
     type Input = Frame<ColorPixel>;
     type Output = Frame<ColorPixel>;
@@ -51,5 +40,13 @@ impl LayerCore for AlphaMask {
             pixel.alpha = pixel.alpha * value;
         }
         active
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(self.mask)
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(self.mask);
     }
 }

@@ -4,7 +4,6 @@ use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::layer::{LayerCore};
 use crate::pattern_builder::component::layer::generic::GenericLayer;
 use crate::pattern_builder::component::layer::standard_types::{TEXTURE_LAYER, VOID};
@@ -33,20 +32,6 @@ impl CyclicTextureGenerator {
     }
 }
 
-impl Component for CyclicTextureGenerator {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties![
-            self.textures,
-        ]
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.textures,
-        );
-    }
-}
-
 impl LayerCore for CyclicTextureGenerator {
     type Input = ();
     type Output = TextureLayer;
@@ -59,5 +44,17 @@ impl LayerCore for CyclicTextureGenerator {
             self.next_texture = (self.next_texture + 1) % textures.len();
             texture.clone()
         }
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties![
+            self.textures,
+        ]
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.textures,
+        );
     }
 }

@@ -1,7 +1,6 @@
 use itertools::Itertools;
 use palette::encoding::Srgb;
 use palette::{Alpha, Hsl, IntoColor, SetHue, Srgba};
-use crate::pattern_builder::component::Component;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
@@ -60,20 +59,6 @@ impl MapHslComponent {
     }
 }
 
-impl Component for MapHslComponent {
-    fn view_properties(&self) -> Vec<PropView> {
-        view_properties!(
-            self.map,
-        )
-    }
-
-    fn detach(&mut self) {
-        fork_properties!(
-            self.map,
-        );
-    }
-}
-
 impl LayerCore for MapHslComponent {
     type Input = Frame<ColorPixel>;
     type Output = Frame<ColorPixel>;
@@ -103,5 +88,17 @@ impl LayerCore for MapHslComponent {
             })
             .map(|hsva_pixel| IntoColor::<Srgba<f64>>::into_color(hsva_pixel).into_linear())
             .collect()
+    }
+
+    fn view_properties(&self) -> Vec<PropView> {
+        view_properties!(
+            self.map,
+        )
+    }
+
+    fn detach(&mut self) {
+        fork_properties!(
+            self.map,
+        );
     }
 }
