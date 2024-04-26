@@ -1,4 +1,5 @@
 use std::f64::consts::PI;
+use nalgebra_glm::{RealNumber, smoothstep};
 use num_traits::{Float, FromPrimitive};
 
 ///
@@ -60,4 +61,19 @@ pub fn triangle_sin<T: Float + FromPrimitive>(smoothness: T, period: T, x: T) ->
 
     let function_maximum = t.asin();
     (t * x_rad.sin()).asin() / function_maximum
+}
+
+///
+/// Computes a square wave with optional smoothing.
+///
+/// - `ratio`: The proportion of the wave that is high.
+/// - `smoothness`: The width of the smoothing on the wave edges.
+/// - `period`: Period of the wave function.
+/// - `x`: Input to the wave function.
+///
+pub fn square_wave<T: Float + FromPrimitive + RealNumber>(ratio: T, smoothness: T, period: T, x: T) -> T {
+    let t = x / period;
+    let t = (t % T::one() + T::one()) % T::one();
+    let s2 = smoothness/T::from_f64(2.0).unwrap();
+    return smoothstep(-s2, s2, t) - smoothstep(ratio - s2, ratio + s2, t) + smoothstep(T::one() - s2, T::one() + s2, t);
 }
