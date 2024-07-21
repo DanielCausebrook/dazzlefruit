@@ -4,17 +4,15 @@ use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
-use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerIcon, LayerTypeInfo};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME, VOID};
+use crate::pattern_builder::component::layer::{DisplayPane, Layer, LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct ScalarToDualTexture {
-    texture_a: Prop<LayerStack<(), Frame<ColorPixel>>>,
-    texture_b: Prop<LayerStack<(), Frame<ColorPixel>>>,
+    texture_a: Prop<LayerStack>,
+    texture_b: Prop<LayerStack>,
     lower_bound: Prop<f64>,
     upper_bound: Prop<f64>,
 }
@@ -22,18 +20,18 @@ pub struct ScalarToDualTexture {
 impl ScalarToDualTexture {
     pub fn new() -> Self {
         Self {
-            texture_a: LayerStackPropCore::new(LayerStack::new(&VOID, &COLOR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
-            texture_b: LayerStackPropCore::new(LayerStack::new(&VOID, &COLOR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            texture_a: LayerStackPropCore::new(LayerStack::new()).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            texture_b: LayerStackPropCore::new(LayerStack::new()).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             lower_bound: NumPropCore::new(0.0).into_prop(PropertyInfo::new("Lower Bound")),
             upper_bound: NumPropCore::new(1.0).into_prop(PropertyInfo::new("Upper Bound")),
         }
     }
 
-    pub fn texture_a(&self) -> &Prop<LayerStack<(), Frame<ColorPixel>>> {
+    pub fn texture_a(&self) -> &Prop<LayerStack> {
         &self.texture_a
     }
 
-    pub fn texture_b(&self) -> &Prop<LayerStack<(), Frame<ColorPixel>>> {
+    pub fn texture_b(&self) -> &Prop<LayerStack> {
         &self.texture_b
     }
 
@@ -45,8 +43,8 @@ impl ScalarToDualTexture {
         &self.upper_bound
     }
     
-    pub fn into_layer(self) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("To Dual Texture").with_icon(LayerIcon::Transformer), &SCALAR_FRAME, &COLOR_FRAME)
+    pub fn into_layer(self) -> Layer {
+        Layer::new(self, LayerTypeInfo::new("To Dual Texture").with_icon(LayerIcon::Transformer))
     }
 }
 

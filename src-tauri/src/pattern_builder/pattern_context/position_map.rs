@@ -1,9 +1,9 @@
-use std::fmt::{Formatter, Write};
+use std::fmt::{Formatter};
 use std::ops::Range;
 use std::slice::Iter;
 use nalgebra_glm::DVec3;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use serde::de::{MapAccess, SeqAccess, Visitor};
+use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 
 pub enum PositionMap<'a> {

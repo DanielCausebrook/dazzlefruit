@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 use futures::StreamExt;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
@@ -9,7 +10,9 @@ use tokio::sync::{broadcast, RwLockReadGuard, RwLockWriteGuard, watch};
 use tokio_stream::wrappers::WatchStream;
 use crate::{AppState, LockedAppState};
 use component::RandId;
-use crate::pattern_builder::component::frame::{ColorPixel, Frame};
+use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
+use crate::pattern_builder::component::layer::io_type::DynTypeMapper;
+use crate::pattern_builder::component::layer::Layer;
 use crate::pattern_builder::pattern::Pattern;
 use crate::pattern_builder::pattern_context::PatternContext;
 use crate::pattern_builder::pattern_context::position_map::PositionMap;
@@ -21,20 +24,49 @@ pub mod math_functions;
 pub mod pattern_context;
 pub mod pattern;
 
+mod standard_types {
+    use crate::pattern_builder::component::layer::io_type::{DynTypeInfo};
+    use crate::{impl_dyn_type, static_dyn_type_def};
+    use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
+    use crate::pattern_builder::component::layer::Layer;
+
+    static_dyn_type_def!(VOID = DynTypeInfo::new("()"));
+    impl_dyn_type!((): VOID);
+
+    static_dyn_type_def!(COLOR_FRAME = DynTypeInfo::new("ColorFrame"));
+    impl_dyn_type!(Frame<ColorPixel>: COLOR_FRAME);
+
+    static_dyn_type_def!(SCALAR_FRAME = DynTypeInfo::new("ScalarFrame"));
+    impl_dyn_type!(Frame<ScalarPixel>: SCALAR_FRAME);
+
+    static_dyn_type_def!(LAYER = DynTypeInfo::new("Layer"));
+    impl_dyn_type!(Layer: LAYER);
+}
+
 pub struct PatternBuilder {
     open_patterns: HashMap<RandId, OpenPattern>,
     pattern_ordering: Vec<RandId>,
     pattern_context: watch::Sender<PatternContext<'static>>,
+    type_mapper: Arc<DynTypeMapper>,
     pattern_update_sender: broadcast::Sender<(RandId, Frame<ColorPixel>)>,
     app_handle: AppHandle,
 }
 
 impl PatternBuilder {
     pub fn new(app_handle: AppHandle, num_pixels: usize) -> PatternBuilder {
+
+        let mut type_mapper = DynTypeMapper::default();
+        type_mapper.add_basic_mappings::<()>();
+        type_mapper.add_basic_mappings::<Frame<ColorPixel>>();
+        type_mapper.add_basic_mappings::<Frame<ScalarPixel>>();
+        type_mapper.add_basic_mappings::<Layer>();
+        let arc_type_mapper = Arc::new(type_mapper);
+
         Self {
             open_patterns: HashMap::new(),
             pattern_ordering: vec![],
-            pattern_context: watch::channel(PatternContext::new(num_pixels)).0,
+            type_mapper: arc_type_mapper.clone(),
+            pattern_context: watch::channel(PatternContext::new(num_pixels, arc_type_mapper)).0,
             pattern_update_sender: broadcast::channel(100).0,
             app_handle,
         }

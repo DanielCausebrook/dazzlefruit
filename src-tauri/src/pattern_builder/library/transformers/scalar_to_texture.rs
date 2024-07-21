@@ -3,26 +3,24 @@ use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
-use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerIcon, LayerTypeInfo};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME, VOID};
+use crate::pattern_builder::component::layer::{DisplayPane, Layer, LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
 pub struct ScalarToTexture {
-    texture: Prop<LayerStack<(), Frame<ColorPixel>>>,
+    texture: Prop<LayerStack>,
     lower_bound: Prop<f64>,
     upper_bound: Prop<f64>,
 }
 
 impl ScalarToTexture {
     pub fn new() -> Self {
-        Self::from(LayerStack::new(&VOID, &COLOR_FRAME))
+        Self::from(LayerStack::new())
     }
     
-    pub fn from(texture: LayerStack<(), Frame<ColorPixel>>) -> Self {
+    pub fn from(texture: LayerStack) -> Self {
         Self {
             texture: LayerStackPropCore::new(texture).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             lower_bound: NumPropCore::new(0.0).into_prop(PropertyInfo::new("Lower Bound")),
@@ -30,10 +28,10 @@ impl ScalarToTexture {
         }
     }
     
-    pub fn texture(&self) -> &Prop<LayerStack<(), Frame<ColorPixel>>> {
+    pub fn texture(&self) -> &Prop<LayerStack> {
         &self.texture
     }
-    
+
     pub fn lower_bound(&self) -> &Prop<f64> {
         &self.lower_bound
     }
@@ -42,8 +40,8 @@ impl ScalarToTexture {
         &self.upper_bound
     }
     
-    pub fn into_layer(self) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("To Texture").with_icon(LayerIcon::Transformer), &SCALAR_FRAME, &COLOR_FRAME)
+    pub fn into_layer(self) -> Layer {
+        Layer::new(self, LayerTypeInfo::new("To Texture").with_icon(LayerIcon::Transformer))
     }
 }
 
@@ -53,7 +51,7 @@ impl LayerCore for ScalarToTexture {
     type Output = Frame<ColorPixel>;
 
     fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
-        let mut frame = self.texture.write().next((), t, ctx)
+        let mut frame: Frame<ColorPixel> = self.texture.write().next((), t, ctx)
             .unwrap_or_else(|_err| Frame::empty(ctx.num_pixels()));
         let lower_bound = *self.lower_bound.read();
         let upper_bound = *self.upper_bound.read();

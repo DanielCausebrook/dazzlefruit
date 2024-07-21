@@ -1,7 +1,7 @@
-use crate::pattern_builder::component::frame::{Blend, BlendMode, ColorPixel, Frame, Opacity};
-use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerInfo, LayerIcon, LayerView, LayerTypeInfo};
-use crate::pattern_builder::component::layer::io_type::IOType;
-use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, COLOR_FRAME_OPTION};
+use crate::fork_properties;
+use crate::pattern_builder::component::frame::{Blend, BlendMode, Opacity};
+use crate::pattern_builder::component::layer::{LayerCore};
+use crate::pattern_builder::component::layer::io_type::DynType;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
@@ -9,28 +9,18 @@ use crate::pattern_builder::component::property::PropertyInfo;
 
 use crate::pattern_builder::pattern_context::PatternContext;
 
-#[derive(Clone)]
-pub struct TextureLayer {
-    info: LayerInfo,
-    type_info: LayerTypeInfo,
-    texture: Box<dyn LayerCore<Input=(), Output=Frame<ColorPixel>>>,
+pub struct BlendingLayerCore<T> where T: DynType + Blend + Opacity {
+    texture: Box<dyn LayerCore<Input=(), Output=T>>,
     blend_mode: Prop<BlendMode>,
     opacity: Prop<f64>,
-    cache: Option<Frame<ColorPixel>>,
 }
 
-impl TextureLayer {
-    pub fn new(texture: impl LayerCore<Input=(), Output=Frame<ColorPixel>>, mut type_info: LayerTypeInfo) -> Self {
-        if type_info.icon().is_none() {
-            type_info = type_info.with_icon(LayerIcon::Texture);
-        }
+impl<T> BlendingLayerCore<T> where T: DynType + Blend + Opacity {
+    pub fn new(texture: impl LayerCore<Input=(), Output=T>) -> Self {
         Self {
-            info: LayerInfo::new(),
-            type_info,
             texture: Box::new(texture),
             blend_mode: RawPropCore::new(BlendMode::Normal).into_prop(PropertyInfo::new("Blend Mode")),
             opacity: NumPropCore::new_slider(1.0, 0.0..1.0, 0.01).into_prop(PropertyInfo::new("Opacity")),
-            cache: None,
         }
     }
 
@@ -43,14 +33,23 @@ impl TextureLayer {
     }
 }
 
-impl LayerCore for TextureLayer {
-    type Input = Option<Frame<ColorPixel>>;
-    type Output = Frame<ColorPixel>;
+impl<T> Clone for BlendingLayerCore<T> where T: DynType + Blend + Opacity {
+    fn clone(&self) -> Self {
+        Self {
+            texture: self.texture.clone(),
+            blend_mode: self.blend_mode.clone(),
+            opacity: self.opacity.clone(),
+        }
+    }
+}
+
+impl<T> LayerCore for BlendingLayerCore<T> where T: DynType + Blend + Opacity {
+    type Input = Option<T>;
+    type Output = T;
 
     fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output {
         let mut frame = self.texture.next((), t, ctx);
         frame = frame.scale_opacity(*self.opacity.read());
-        self.cache = Some(frame.clone());
         if let Some(active) = input {
             frame.blend(active, *self.blend_mode().read())
         } else {
@@ -59,39 +58,17 @@ impl LayerCore for TextureLayer {
     }
 
     fn view_properties(&self) -> Vec<PropView> {
-        self.texture.view_properties().into_iter()
-            .chain([self.opacity.view()])
-            .collect()
+        let mut props = self.texture.view_properties();
+        props.push(self.opacity.view());
+        props.push(self.blend_mode.view());
+        props
     }
 
     fn detach(&mut self) {
-        self.info.detach();
         self.texture.detach();
-        self.blend_mode = self.blend_mode.fork();
-        self.opacity = self.opacity.fork();
-    }
-}
-
-impl Layer for TextureLayer {
-    fn type_info(&self) -> &LayerTypeInfo {
-        &self.type_info
-    }
-
-    fn input_type(&self) -> &IOType<Self::Input> {
-        &COLOR_FRAME_OPTION
-    }
-
-    fn output_type(&self) -> &IOType<Self::Output> {
-        &COLOR_FRAME
-    }
-
-    fn info(&self) -> &LayerInfo {
-        &self.info
-    }
-
-    fn view(&self) -> LayerView {
-        LayerView::new(self)
-            .add_data("blend_mode", *self.blend_mode.read())
-            .add_data("opacity", *self.opacity.read())
+        fork_properties!(
+            self.opacity,
+            self.blend_mode,
+        );
     }
 }

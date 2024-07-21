@@ -1,7 +1,5 @@
 use nalgebra_glm::{DVec3, smoothstep};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
-use crate::pattern_builder::component::layer::standard_types::{SCALAR_FRAME, VOID};
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::num_vec::NumVecPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -25,8 +23,8 @@ impl Heart {
         }
     }
 
-    pub fn into_layer(self) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("Heart").with_icon(LayerIcon::Texture), &VOID, &SCALAR_FRAME)
+    pub fn into_layer(self) -> Layer {
+        Layer::new_texture(self, LayerTypeInfo::new("Heart"))
     }
 
     pub fn center(&self) -> &Prop<DVec3> {

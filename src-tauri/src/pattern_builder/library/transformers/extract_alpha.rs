@@ -1,9 +1,7 @@
 use crate::pattern_builder::component::property::PropView;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
-use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME};
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerIcon, LayerTypeInfo};
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
@@ -14,8 +12,8 @@ impl ExtractAlpha {
         Self {}
     }
 
-    pub fn into_layer(self) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("Extract Alpha").with_icon(LayerIcon::Transformer), &COLOR_FRAME, &SCALAR_FRAME)
+    pub fn into_layer(self) -> Layer {
+        Layer::new(self, LayerTypeInfo::new("Extract Alpha").with_icon(LayerIcon::Transformer))
     }
 }
 

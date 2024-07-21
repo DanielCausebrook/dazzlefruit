@@ -6,9 +6,6 @@ use palette::encoding::Srgb;
 use std::str::FromStr;
 use crate::pattern_builder::component::frame::{Blend, BlendMode, ColorPixel, Frame, Opacity, Pixel, ScalarPixel};
 use crate::pattern_builder::component::layer::{DisplayPane, Layer, LayerCore, LayerIcon, LayerTypeInfo};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, SCALAR_FRAME, VOID};
-use crate::pattern_builder::component::layer::texture::TextureLayer;
 use crate::pattern_builder::component::property::color::ColorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -57,8 +54,8 @@ impl AddValue {
         }
     }
 
-    pub fn into_layer(self) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("Add value"), &SCALAR_FRAME, &SCALAR_FRAME)
+    pub fn into_layer(self) -> Layer {
+        Layer::new_filter(self, LayerTypeInfo::new("Add value"))
     }
 }
 
@@ -93,8 +90,8 @@ impl SinglePixel {
         }
     }
 
-    pub fn into_layer(self) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("Single Pixel").with_icon(LayerIcon::Texture), &VOID, &SCALAR_FRAME)
+    pub fn into_layer(self) -> Layer {
+        Layer::new_texture(self, LayerTypeInfo::new("Single Pixel").with_icon(LayerIcon::Texture))
     }
 }
 
@@ -117,7 +114,7 @@ impl LayerCore for SinglePixel {
     fn detach(&mut self) {
         fork_properties!(
             self.position
-        )
+        );
     }
 }
 
@@ -157,7 +154,7 @@ fn test_pattern(pattern_context: watch::Receiver<PatternContext<'static>>) -> Pa
 
     let mask = AlphaMask::new();
     mask.stack().write().push(Pulse::new(4.0, 10.0, 3.0).into_layer());
-    mask.stack().write().push(Persistence::new(5.0).into_layer(&SCALAR_FRAME));
+    mask.stack().write().push(Persistence::<Frame<ScalarPixel>>::new(5.0).into_layer());
     mask.stack().write().push(Sparkles::new(7.0, 5.0).into_layer());
     pattern.stack().write().push(mask.into_layer());
 
@@ -196,8 +193,8 @@ fn stutter_pulse_pattern(pattern_context: watch::Receiver<PatternContext<'static
 
     let pulse_group = Group::new();
     pulse_group.stack().write().push(Pulse::new(3.5, 3.0, 8.0).into_layer());
-    pulse_group.stack().write().push(Stutter::new_partially_empty(0.026, 0.0, |ctx| Frame::empty(ctx.num_pixels())).into_layer(&SCALAR_FRAME));
-    pulse_group.stack().write().push(Persistence::new(2.7).into_layer(&SCALAR_FRAME));
+    pulse_group.stack().write().push(Stutter::<Frame<ScalarPixel>>::new_partially_empty(0.026, 0.0, |ctx| Frame::empty(ctx.num_pixels())).into_layer());
+    pulse_group.stack().write().push(Persistence::<Frame<ScalarPixel>>::new(2.7).into_layer());
     let texture = ScalarToTexture::new();
     texture.texture().write().push(SolidColor::new(Rgb::from_str("#FFB846").unwrap().into()).into_layer().with_name("Gold"));
     pulse_group.stack().write().push(texture.into_layer());
@@ -259,8 +256,8 @@ fn simple_wave_pattern(pattern_context: watch::Receiver<PatternContext<'static>>
             }
         }
 
-        pub fn into_layer(self) -> TextureLayer {
-            TextureLayer::new(self, LayerTypeInfo::new("Wave"))
+        pub fn into_layer(self) -> Layer {
+            Layer::new_texture(self, LayerTypeInfo::new("Wave"))
         }
     }
 
@@ -328,8 +325,8 @@ fn growing_hearts_pattern(pattern_context: watch::Receiver<PatternContext<'stati
             }
         }
 
-        pub fn into_layer(self) -> GenericLayer<Self> {
-            GenericLayer::new(self, LayerTypeInfo::new("Growing Hearts").with_icon(LayerIcon::Texture), &VOID, &SCALAR_FRAME)
+        pub fn into_layer(self) -> Layer {
+            Layer::new_texture(self, LayerTypeInfo::new("Growing Hearts"))
         }
     }
 
@@ -412,7 +409,7 @@ pub fn pretty_light_pattern(pattern_context: watch::Receiver<PatternContext<'sta
     pink_group.stack().write().push(pink_texture.into_layer());
     pattern.stack().write().push(pink_group.into_layer());
 
-    pattern.stack().write().push(Persistence::new(0.0).into_layer(&COLOR_FRAME));
+    pattern.stack().write().push(Persistence::<Frame<ColorPixel>>::new(0.0).into_layer());
 
     pattern
 }

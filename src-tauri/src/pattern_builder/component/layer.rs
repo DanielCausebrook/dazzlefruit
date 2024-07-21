@@ -3,23 +3,22 @@ use dyn_clone::{clone_trait_object, DynClone};
 use rand::random;
 use serde::{Serialize, Serializer};
 use serde::ser::SerializeStruct;
+use crate::pattern_builder::component::frame::{Blend, Opacity};
 use crate::pattern_builder::component::RandId;
-use crate::pattern_builder::component::layer::io_type::{ErasedIOType, ErasedIOValue, IOType};
+use crate::pattern_builder::component::layer::io_type::{DynType, DynTypeDef, NoMappingError, DynTypeMapper, DynValue};
 use crate::pattern_builder::component::layer::layer_stack::StackTypeError;
+use crate::pattern_builder::component::layer::texture::BlendingLayerCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
-use crate::pattern_builder::component::property::raw::RawPropCore;
 use crate::pattern_builder::component::property::string::OptionStringPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 pub mod texture;
 pub mod layer_stack;
 pub mod io_type;
-pub mod generic;
-pub mod scalar_texture;
 
 pub trait LayerCore: Send + Sync + DynClone + 'static {
-    type Input;
-    type Output;
+    type Input: DynType;
+    type Output: DynType;
 
     fn next(&mut self, input: Self::Input, t: f64, ctx: &PatternContext) -> Self::Output;
     fn view_properties(&self) -> Vec<PropView>;
@@ -43,93 +42,121 @@ impl<T> LayerCore for Box<T> where T: LayerCore + Clone + ?Sized {
     }
 }
 
-pub trait Layer: LayerCore {
-    fn type_info(&self) -> &LayerTypeInfo;
-    fn input_type(&self) -> &IOType<Self::Input>;
-    fn output_type(&self) -> &IOType<Self::Output>;
-    fn info(&self) -> &LayerInfo;
-    fn with_name(self, name: &str) -> Self where Self: Sized {
-        *self.info().name().write() = Some(name.to_string());
-        self
-    }
-    fn with_description(self, description: &str) -> Self where Self: Sized {
-        *self.info().description().write() = Some(description.to_string());
-        self
-    }
-    fn view(&self) -> LayerView {
-        LayerView::new(self)
-    }
-}
-clone_trait_object!(<I, O> Layer<Input=I, Output=O>);
-
-impl<T> Layer for Box<T> where T: Layer + Clone + ?Sized {
-
-    fn type_info(&self) -> &LayerTypeInfo {
-        self.as_ref().type_info()
-    }
-
-    fn input_type(&self) -> &IOType<Self::Input> {
-        self.as_ref().input_type()
-    }
-
-    fn output_type(&self) -> &IOType<Self::Output> {
-        self.as_ref().output_type()
-    }
-
-    fn info(&self) -> &LayerInfo {
-        self.as_ref().info()
-    }
-    fn with_name(self, name: &str) -> Self where Self: Sized {
-        Box::new((*self).with_name(name))
-    }
-    fn with_description(self, description: &str) -> Self where Self: Sized {
-        Box::new((*self).with_description(description))
-    }
-    fn view(&self) -> LayerView {
-        self.as_ref().view()
-    }
-}
-
-pub trait ErasedLayer: Send + Sync + DynClone + 'static {
-    fn input_type(&self) -> &dyn ErasedIOType;
-    fn output_type(&self) -> &dyn ErasedIOType;
-    fn info(&self) -> &LayerInfo;
-    fn type_info(&self) -> &LayerTypeInfo;
-    fn try_next(&mut self, input: ErasedIOValue, t: f64, ctx: &PatternContext) -> Result<ErasedIOValue, StackTypeError>;
-    fn view(&self) -> LayerView;
+trait DynLayerCore: Send + Sync + DynClone + 'static {
+    fn try_next(&mut self, input: DynValue, t: f64, ctx: &PatternContext) -> Result<DynValue, NoMappingError>;
+    fn eval_type(&self, input_type: Option<DynTypeDef>, type_errors: &mut Vec<StackTypeError>, type_mapper: &DynTypeMapper) -> Result<Option<DynTypeDef>, NoMappingError>;
+    fn view_properties(&self) -> Vec<PropView>;
     fn detach(&mut self);
 }
-clone_trait_object!(ErasedLayer);
 
-impl<L> ErasedLayer for L where L: Layer + Clone {
-    fn input_type(&self) -> &dyn ErasedIOType {
-        L::input_type(self)
+clone_trait_object!(DynLayerCore);
+
+impl<L> DynLayerCore for L where L: LayerCore {
+    fn try_next(&mut self, input: DynValue, t: f64, ctx: &PatternContext) -> Result<DynValue, NoMappingError> {
+        let input = input.try_into(ctx.type_mapper())
+            .map_err(|err| err.err())?;
+        Ok(self.next(input, t, ctx).into_dyn_value())
     }
 
-    fn output_type(&self) -> &dyn ErasedIOType {
-        L::output_type(self)
+    fn eval_type(&self, input_type: Option<DynTypeDef>, _type_errors: &mut Vec<StackTypeError>, type_mapper: &DynTypeMapper) -> Result<Option<DynTypeDef>, NoMappingError> {
+        input_type.map(|input_type| {
+            type_mapper.assert_has_mapping(input_type, L::Input::dyn_type_def())
+                .map(|_| L::Output::dyn_type_def())
+        }).transpose()
     }
 
-    fn info(&self) -> &LayerInfo {
-        L::info(self)
-    }
-
-    fn type_info(&self) -> &LayerTypeInfo {
-        L::type_info(self)
-    }
-
-    fn try_next(&mut self, input: ErasedIOValue, t: f64, ctx: &PatternContext) -> Result<ErasedIOValue, StackTypeError> {
-        let input = input.try_into(self.input_type())
-            .map_err(|err| StackTypeError::LayerInput(self.info().id(), err))?;
-        Ok(ErasedIOValue::new(self.next(input, t, ctx), self.output_type()))
-    }
-
-    fn view(&self) -> LayerView {
-        L::view(self)
+    fn view_properties(&self) -> Vec<PropView> {
+        L::view_properties(self)
     }
 
     fn detach(&mut self) {
         L::detach(self);
+    }
+}
+
+#[derive(Clone)]
+pub struct Layer {
+    info: LayerInfo,
+    type_info: LayerTypeInfo,
+    core: Box<dyn DynLayerCore>,
+}
+
+impl Layer {
+    pub fn new<I: DynType, O: DynType>(core: impl LayerCore<Input=I, Output=O>, type_info: LayerTypeInfo) -> Self {
+        Self {
+            info: LayerInfo::new(),
+            type_info,
+            core: Box::new(core),
+        }
+    }
+
+    pub fn new_texture<T>(core: impl LayerCore<Input=(), Output=T>, mut type_info: LayerTypeInfo) -> Self where T: DynType + Blend + Opacity {
+        if type_info.icon().is_none() {
+            type_info = type_info.with_icon(LayerIcon::Texture);
+        }
+        Self {
+            info: LayerInfo::new(),
+            type_info,
+            core: Box::new(BlendingLayerCore::new(core)),
+        }
+    }
+
+    pub fn new_filter<T: DynType>(core: impl LayerCore<Input=T, Output=T>, mut type_info: LayerTypeInfo) -> Self {
+        if type_info.icon().is_none() {
+            type_info = type_info.with_icon(LayerIcon::Filter);
+        }
+        Self {
+            info: LayerInfo::new(),
+            type_info,
+            core: Box::new(core),
+        }
+    }
+
+    pub fn with_name(self, name: &str) -> Self {
+        *self.info.name().write() = Some(name.to_string());
+        self
+    }
+
+    pub fn with_description(self, description: &str) -> Self {
+        *self.info.description().write() = Some(description.to_string());
+        self
+    }
+
+    pub fn info(&self) -> &LayerInfo {
+        &self.info
+    }
+
+    pub fn type_info(&self) -> &LayerTypeInfo {
+        &self.type_info
+    }
+
+    pub fn eval_type(&self, input_type: Option<DynTypeDef>, type_errors: &mut Vec<StackTypeError>, type_mapper: &DynTypeMapper) -> Option<DynTypeDef> {
+        match self.core.eval_type(input_type, type_errors, type_mapper) {
+            Ok(o) => o,
+            Err(err) => {
+                type_errors.push(StackTypeError::LayerInput(self.info.clone(), err));
+                None
+            }
+        }
+    }
+
+    pub fn try_next(&mut self, input: DynValue, t: f64, ctx: &PatternContext) -> Result<DynValue, StackTypeError> {
+        self.core.try_next(input, t, ctx)
+            .map_err(|err| StackTypeError::LayerInput(self.info().clone(), err))
+    }
+
+    pub fn view(&self) -> LayerView {
+        LayerView {
+            type_info: self.type_info().clone(),
+            info: self.info().clone(),
+            property_views: self.core.view_properties(),
+            data: HashMap::new(),
+        }
+    }
+
+    pub fn detach(&mut self) {
+        self.info.detach();
+        self.core.detach();
     }
 }
 
@@ -149,15 +176,6 @@ pub struct LayerView {
 }
 
 impl LayerView {
-    pub fn new(layer: &(impl Layer + ?Sized)) -> Self {
-        Self {
-            type_info: layer.type_info().clone(),
-            info: layer.info().clone(),
-            property_views: layer.view_properties(),
-            data: HashMap::new(),
-        }
-    }
-
     pub fn add_data(mut self, key: &str, value: impl Serialize + 'static) -> Self {
         self.data.insert(key.to_string(), Box::new(value));
         self
@@ -183,44 +201,6 @@ impl Serialize for LayerView {
         struct_ser.serialize_field("properties", &self.property_views)?;
         struct_ser.end()
     }
-}
-
-pub mod standard_types {
-    use once_cell::sync::Lazy;
-    use crate::pattern_builder::component::frame::{ColorPixel, Frame, ScalarPixel};
-    use crate::pattern_builder::component::layer::io_type::IOType;
-    use crate::pattern_builder::component::layer::texture::TextureLayer;
-
-    pub static VOID: Lazy<IOType<()>> = Lazy::new(|| IOType::new("()"));
-    pub static COLOR_FRAME: Lazy<IOType<Frame<ColorPixel>>> = Lazy::new(|| {
-        let mut ty = IOType::new("ColorFrame");
-        ty.add_mapping_into(|frame| Some(frame));
-        ty
-    });
-    pub static COLOR_FRAME_OPTION: Lazy<IOType<Option<Frame<ColorPixel>>>> = Lazy::new(|| {
-        let mut ty = IOType::new("Option<ColorFrame>");
-        ty.add_mapping_from(|frame| Some(frame));
-        ty.add_mapping_from(|_: ()| None);
-        ty
-    });
-
-    pub static TEXTURE_LAYER: Lazy<IOType<TextureLayer>> = Lazy::new(|| {
-        let mut ty = IOType::new("TextureLayer");
-        ty
-    });
-
-    pub static SCALAR_FRAME: Lazy<IOType<Frame<ScalarPixel>>> = Lazy::new(|| {
-        let mut ty = IOType::new("ScalarFrame");
-        ty.add_mapping_into(|frame| Some(frame));
-        ty
-    });
-
-    pub static SCALAR_FRAME_OPTION: Lazy<IOType<Option<Frame<ScalarPixel>>>> = Lazy::new(|| {
-        let mut ty = IOType::new("Option<ScalarFrame>");
-        ty.add_mapping_from(|frame| Some(frame));
-        ty.add_mapping_from(|_: ()| None);
-        ty
-    });
 }
 
 #[derive(Clone, Serialize)]

@@ -1,12 +1,12 @@
 use crate::pattern_builder::component::layer::{Layer, LayerView};
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
-use crate::pattern_builder::component::layer::texture::TextureLayer;
 
-pub struct LayerPropCore<T>(Box<T>) where T: Layer + Clone;
+#[derive(Clone)]
+pub struct LayerPropCore(Layer);
 
-impl<T> LayerPropCore<T> where T: Layer + Clone {
-    pub fn new(value: T) -> Self {
-        Self (Box::new(value))
+impl LayerPropCore {
+    pub fn new(value: Layer) -> Self {
+        Self (value)
     }
 
     pub fn fork(&self) -> Self {
@@ -16,14 +16,8 @@ impl<T> LayerPropCore<T> where T: Layer + Clone {
     }
 }
 
-impl<T> Clone for LayerPropCore<T> where T: Layer + Clone {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-impl<T> PropCore for LayerPropCore<T> where T: Layer + Clone {
-    type Value = T;
+impl PropCore for LayerPropCore {
+    type Value = Layer;
 
     fn read(&self) -> PropRead<Self::Value> {
         PropRead::Ref(&self.0)
@@ -38,7 +32,7 @@ impl<T> PropCore for LayerPropCore<T> where T: Layer + Clone {
     }
 }
 
-impl<T> ErasedPropCore for LayerPropCore<T> where T: Layer + Clone {
+impl ErasedPropCore for LayerPropCore {
     fn prop_type_id(&self) -> String {
         "layer".to_string()
     }
@@ -56,9 +50,9 @@ impl<T> ErasedPropCore for LayerPropCore<T> where T: Layer + Clone {
     }
 }
 
-pub struct LayerVecPropCore<T> (Vec<T>) where T: Layer + Clone;
+pub struct LayerVecPropCore (Vec<Layer>);
 
-impl<T> LayerVecPropCore<T> where T: Layer + Clone {
+impl LayerVecPropCore {
     pub fn new() -> Self {
         Self(vec![])
     }
@@ -71,14 +65,14 @@ impl<T> LayerVecPropCore<T> where T: Layer + Clone {
     }
 }
 
-impl<T> Clone for LayerVecPropCore<T> where T: Layer + Clone {
+impl Clone for LayerVecPropCore {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<T> PropCore for LayerVecPropCore<T> where T: Layer + Clone {
-    type Value = Vec<T>;
+impl PropCore for LayerVecPropCore {
+    type Value = Vec<Layer>;
 
     fn read(&self) -> PropRead<Self::Value> {
         PropRead::Ref(&self.0)
@@ -93,14 +87,14 @@ impl<T> PropCore for LayerVecPropCore<T> where T: Layer + Clone {
     }
 }
 
-impl<T> ErasedPropCore for LayerVecPropCore<T> where T: Layer + Clone {
+impl ErasedPropCore for LayerVecPropCore {
     fn prop_type_id(&self) -> String {
         "layer-vec".to_string()
     }
 
     fn child_layer_views(&self) -> Vec<LayerView> {
         self.0.iter()
-            .map(|layer| LayerView::new(layer))
+            .map(|layer| layer.view())
             .collect()
     }
 
@@ -112,6 +106,3 @@ impl<T> ErasedPropCore for LayerVecPropCore<T> where T: Layer + Clone {
         Box::new(self.0.iter().map(|l| l.info().id()).collect::<Vec<_>>())
     }
 }
-
-pub type TexturePropCore = LayerPropCore<TextureLayer>;
-pub type TextureVecPropCore = LayerVecPropCore<TextureLayer>;

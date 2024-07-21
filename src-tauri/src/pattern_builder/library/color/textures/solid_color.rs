@@ -1,7 +1,6 @@
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
-use crate::pattern_builder::component::layer::{DisplayPane, LayerCore, LayerTypeInfo};
-use crate::pattern_builder::component::layer::texture::TextureLayer;
+use crate::pattern_builder::component::layer::{DisplayPane, Layer, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::color::ColorPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::PropertyInfo;
@@ -19,8 +18,8 @@ impl SolidColor {
         }
     }
 
-    pub fn into_layer(self) -> TextureLayer {
-        TextureLayer::new(self, LayerTypeInfo::new("Color"))
+    pub fn into_layer(self) -> Layer {
+        Layer::new_texture(self, LayerTypeInfo::new("Color"))
     }
 }
 

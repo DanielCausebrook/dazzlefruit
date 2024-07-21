@@ -1,6 +1,5 @@
 use nalgebra_glm::smoothstep;
-use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
-use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
@@ -36,8 +35,8 @@ impl Pulse {
         &self.smoothness
     }
 
-    pub fn into_layer(self) -> ScalarTextureLayer {
-        ScalarTextureLayer::new(self, LayerTypeInfo::new("Pulse"))
+    pub fn into_layer(self) -> Layer {
+        Layer::new_texture(self, LayerTypeInfo::new("Pulse"))
     }
 }
 

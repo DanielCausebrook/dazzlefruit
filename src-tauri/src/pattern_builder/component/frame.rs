@@ -6,7 +6,6 @@ use std::vec::IntoIter;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub enum BlendMode {
     Normal,

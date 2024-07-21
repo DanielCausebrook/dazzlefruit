@@ -4,8 +4,7 @@ use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::math_functions::skew_sin;
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{Frame, ScalarPixel};
-use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
-use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
@@ -54,8 +53,8 @@ impl DualWaves {
         &self.wave2_skew
     }
 
-    pub fn into_layer(self) -> ScalarTextureLayer {
-        ScalarTextureLayer::new(self, LayerTypeInfo::new("Waves"))
+    pub fn into_layer(self) -> Layer {
+        Layer::new_texture(self, LayerTypeInfo::new("Waves"))
     }
 }
 

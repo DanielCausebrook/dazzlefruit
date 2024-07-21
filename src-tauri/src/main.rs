@@ -8,15 +8,10 @@
 
 extern crate core;
 
-use std::str::FromStr;
-use palette::{IntoColor, WithHue};
 use tauri::{AppHandle, Manager};
 use tokio::sync::RwLock;
 
 use crate::neopixel_controller::NeopixelController;
-use crate::pattern_builder::component::frame::{Blend, Opacity, Pixel};
-use crate::pattern_builder::component::layer::{Layer, LayerCore};
-use crate::pattern_builder::component::property::PropCore;
 use crate::pattern_builder::PatternBuilder;
 use crate::pico_connection::PicoConnectionHandle;
 use crate::tauri_events::DebugMessagePayload;

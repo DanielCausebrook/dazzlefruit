@@ -12,7 +12,6 @@ use crate::pattern_builder::component::{RandId};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
 use crate::pattern_builder::component::layer::{DisplayPane, LayerView};
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
-use crate::pattern_builder::component::layer::standard_types::{COLOR_FRAME, VOID};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::layer_stack::LayerStackPropCore;
 use crate::pattern_builder::component::property::num::NumPropCore;
@@ -21,7 +20,7 @@ use crate::pattern_builder::component::property::PropertyInfo;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 struct PatternRunnerTask {
-    layer: Prop<LayerStack<(), Frame<ColorPixel>>>,
+    layer: Prop<LayerStack>,
     pattern_context: watch::Receiver<PatternContext<'static>>,
     update_sender: watch::Sender<Frame<ColorPixel>>,
     running: Prop<bool>,
@@ -76,11 +75,12 @@ impl PatternRunnerTask {
             self.last_instant.send(now).unwrap();
 
             let ctx = self.pattern_context.borrow();
-            let pixel_data = self.layer.write().next((), *self.t.borrow(), &ctx)
+            let pixel_data: Frame<ColorPixel> = self.layer.write().next((), *self.t.borrow(), &ctx)
                 .unwrap_or_else(|err| {
                     eprintln!("Failed to evaluate stack: {:?}", err);
                     Frame::<ColorPixel>::empty(ctx.num_pixels())
                 });
+
             self.update_sender.send(pixel_data).unwrap();
         }
     }
@@ -94,7 +94,7 @@ pub struct Pattern {
     fps: f32,
     t: watch::Receiver<f64>,
     last_instant: watch::Receiver<Instant>,
-    stack: Prop<LayerStack<(), Frame<ColorPixel>>>,
+    stack: Prop<LayerStack>,
     pattern_context: watch::Receiver<PatternContext<'static>>,
     running: Prop<bool>,
     speed: Prop<f64>,
@@ -107,7 +107,7 @@ impl Pattern {
         let (t_send, t_recv) = watch::channel(0.0);
         let (last_instant_send, last_instant_recv) = watch::channel(Instant::now());
         let animation_runner = PatternRunnerTask {
-            layer: LayerStackPropCore::new(LayerStack::new(&VOID, &COLOR_FRAME)).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
+            layer: LayerStackPropCore::new(LayerStack::new()).into_prop(PropertyInfo::unnamed().set_display_pane(DisplayPane::Tree)),
             pattern_context: pattern_context.clone(),
             update_sender,
             running: RawPropCore::new(true).into_prop(PropertyInfo::new("Running")),
@@ -150,7 +150,7 @@ impl Pattern {
         property.try_update(value.as_str())
     }
 
-    pub fn stack(&self) -> &Prop<LayerStack<(), Frame<ColorPixel>>> {
+    pub fn stack(&self) -> &Prop<LayerStack> {
         &self.stack
     }
 

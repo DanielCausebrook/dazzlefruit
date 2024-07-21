@@ -1,9 +1,8 @@
-use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{Blend, BlendMode, Opacity};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::io_type::IOType;
+use crate::pattern_builder::component::layer::io_type::DynType;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
 
@@ -14,7 +13,7 @@ pub struct Persistence<T> where T: Blend + Opacity + Clone {
     last_t: f64,
 }
 
-impl<T> Persistence<T> where T: Blend + Opacity + Clone {
+impl<T> Persistence<T> where T: Blend + Opacity + DynType + Clone {
     pub fn new(decay_rate: f64) -> Self {
         Self {
             state: None,
@@ -27,12 +26,12 @@ impl<T> Persistence<T> where T: Blend + Opacity + Clone {
         &self.decay_rate
     }
     
-    pub fn into_layer(self, io_type: &'static IOType<T>) -> GenericLayer<Self> where T: Send + Sync + 'static {
-        GenericLayer::new(self, LayerTypeInfo::new("Persistence").with_icon(LayerIcon::Filter), io_type, io_type)
+    pub fn into_layer(self) -> Layer where T: Send + Sync + 'static {
+        Layer::new_filter(self, LayerTypeInfo::new("Persistence"))
     }
 }
 
-impl<T> LayerCore for Persistence<T> where T: Blend + Opacity + Clone + Send + Sync + 'static {
+impl<T> LayerCore for Persistence<T> where T: Blend + Opacity + DynType + Clone {
     type Input = T;
     type Output = T;
 

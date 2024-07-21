@@ -4,8 +4,7 @@ use rand::random;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{Frame, Pixel, ScalarPixel};
-use crate::pattern_builder::component::layer::{LayerCore, LayerTypeInfo};
-use crate::pattern_builder::component::layer::scalar_texture::ScalarTextureLayer;
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::num_vec::NumVecPropCore;
 use crate::pattern_builder::pattern_context::PatternContext;
@@ -40,8 +39,8 @@ impl SimplexNoise {
         &self.travel_vel
     }
 
-    pub fn into_layer(self) -> ScalarTextureLayer {
-        ScalarTextureLayer::new(self, LayerTypeInfo::new("Simplex Noise"))
+    pub fn into_layer(self) -> Layer {
+        Layer::new_texture(self, LayerTypeInfo::new("Simplex Noise"))
     }
 }
 

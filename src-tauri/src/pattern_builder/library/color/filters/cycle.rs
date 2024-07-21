@@ -2,9 +2,7 @@ use palette::Mix;
 
 use crate::{fork_properties, view_properties};
 use crate::pattern_builder::component::frame::{ColorPixel, Frame};
-use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::standard_types::COLOR_FRAME;
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
 use crate::pattern_builder::component::property::{Prop, PropCore, PropView};
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::raw::RawPropCore;
@@ -39,8 +37,8 @@ impl Cycle {
         &self.smoothing
     }
     
-    pub fn into_layer(self) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("Cycle").with_icon(LayerIcon::Filter), &COLOR_FRAME, &COLOR_FRAME)
+    pub fn into_layer(self) -> Layer {
+        Layer::new_filter(self, LayerTypeInfo::new("Cycle"))
     }
 }
 

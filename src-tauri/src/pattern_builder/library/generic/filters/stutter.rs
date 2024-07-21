@@ -2,20 +2,19 @@ use num_traits::Zero;
 use crate::pattern_builder::component::property::num::NumPropCore;
 use crate::pattern_builder::component::property::{Prop, PropCore, PropertyInfo, PropView};
 use crate::{fork_properties, view_properties};
-use crate::pattern_builder::component::layer::{LayerCore, LayerIcon, LayerTypeInfo};
-use crate::pattern_builder::component::layer::generic::GenericLayer;
-use crate::pattern_builder::component::layer::io_type::IOType;
+use crate::pattern_builder::component::layer::{Layer, LayerCore, LayerTypeInfo};
+use crate::pattern_builder::component::layer::io_type::DynType;
 use crate::pattern_builder::pattern_context::PatternContext;
 
 #[derive(Clone)]
-pub struct Stutter<T> where T: Clone + Send + Sync + 'static {
+pub struct Stutter<T> where T: DynType + Clone + Send + Sync {
     period: Prop<f64>,
     show_for_config: Option<(Prop<f64>, fn(&PatternContext) -> T)>,
     last_frame_t: f64,
     frame: Option<T>,
 }
 
-impl<T> Stutter<T> where T: Clone + Send + Sync + 'static {
+impl<T> Stutter<T> where T: DynType + Clone {
     pub fn new(period: f64) -> Self {
         Self {
             period: NumPropCore::new_slider(period, 0.0..10.0, 0.1).into_prop(PropertyInfo::new("Period")),
@@ -37,12 +36,12 @@ impl<T> Stutter<T> where T: Clone + Send + Sync + 'static {
         }
     }
 
-    pub fn into_layer(self, io_type: &'static IOType<T>) -> GenericLayer<Self> {
-        GenericLayer::new(self, LayerTypeInfo::new("Stutter").with_icon(LayerIcon::Filter), io_type, io_type)
+    pub fn into_layer(self) -> Layer {
+        Layer::new_filter(self, LayerTypeInfo::new("Stutter"))
     }
 }
 
-impl<T> LayerCore for Stutter<T> where T: Clone + Send + Sync + 'static {
+impl<T> LayerCore for Stutter<T> where T: DynType + Clone {
     type Input = T;
     type Output = T;
 

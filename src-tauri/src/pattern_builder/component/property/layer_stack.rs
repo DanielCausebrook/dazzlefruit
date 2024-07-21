@@ -3,10 +3,11 @@ use crate::pattern_builder::component::layer::LayerView;
 use crate::pattern_builder::component::layer::layer_stack::LayerStack;
 use crate::pattern_builder::component::property::{ErasedPropCore, PropCore, PropRead, PropWrite};
 
-pub struct LayerStackPropCore<I, O> (LayerStack<I, O>) where I: 'static, O: 'static;
+#[derive(Clone)]
+pub struct LayerStackPropCore (LayerStack);
 
-impl<I, O> LayerStackPropCore<I, O> where I: 'static, O: 'static {
-    pub fn new(stack: LayerStack<I, O>) -> Self {
+impl LayerStackPropCore {
+    pub fn new(stack: LayerStack) -> Self {
         Self(stack)
     }
     pub fn fork(&self) -> Self {
@@ -16,14 +17,8 @@ impl<I, O> LayerStackPropCore<I, O> where I: 'static, O: 'static {
     }
 }
 
-impl<I, O> Clone for LayerStackPropCore<I, O> where I: 'static, O: 'static {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
-    }
-}
-
-impl<I, O> PropCore for LayerStackPropCore<I, O> where I: 'static, O: 'static {
-    type Value = LayerStack<I, O>;
+impl PropCore for LayerStackPropCore {
+    type Value = LayerStack;
 
     fn read(&self) -> PropRead<Self::Value> {
         PropRead::Ref(&self.0)
@@ -38,7 +33,7 @@ impl<I, O> PropCore for LayerStackPropCore<I, O> where I: 'static, O: 'static {
     }
 }
 
-impl<I, O> ErasedPropCore for LayerStackPropCore<I, O> where I: 'static, O: 'static {
+impl ErasedPropCore for LayerStackPropCore {
     fn prop_type_id(&self) -> String {
         "layer-stack".to_string()
     }
@@ -57,7 +52,7 @@ impl<I, O> ErasedPropCore for LayerStackPropCore<I, O> where I: 'static, O: 'sta
 
     fn view_data(&self) -> HashMap<String, Box<dyn erased_serde::Serialize + 'static>> {
         [
-            ("errors", self.0.type_errors())
+            ("errors", Vec::<()>::new())
         ].into_iter()
             .map(|(k, v)| (k.to_string(), Box::new(v) as Box<dyn erased_serde::Serialize>))
             .collect()
