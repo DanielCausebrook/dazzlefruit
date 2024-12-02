@@ -1,6 +1,6 @@
 <script lang="ts">
     import Layer from "./Layer.svelte";
-    import {invoke} from "@tauri-apps/api/tauri";
+    import {invoke} from "@tauri-apps/api/core";
     import {rgbToHex} from "./rgb-to-hex";
     import type {PatternView} from "./pattern-view";
 

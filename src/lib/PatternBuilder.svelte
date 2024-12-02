@@ -1,18 +1,18 @@
 <script lang="ts">
-    import {invoke} from "@tauri-apps/api/tauri"
+    import {invoke} from "@tauri-apps/api/core"
     import {onMount} from "svelte";
     import {PatternBuilderView} from "./pattern_builder/pattern-builder-view";
     import Pattern from "./pattern_builder/Pattern.svelte";
-    import { open, message } from "@tauri-apps/api/dialog";
+    import { open, message } from "@tauri-apps/plugin-dialog";
     import Preview3D from "./pattern_builder/Preview3D.svelte";
 
-    export type PositionMap = [[number, number, number]|null];
+    type PositionMap = [[number, number, number]|null];
 
     export let patternBuilder: PatternBuilderView|null;
 
     let root: HTMLElement;
     let preview3d: Preview3D;
-    let pixelColorData: [[number, number, number, number]] = [];
+    let pixelColorData: [number, number, number, number][] = [];
 
     onMount(async () => {
         let openPatternsInfo = JSON.parse(await invoke("view_open_patterns", {}));

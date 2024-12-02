@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use futures::task::AtomicWaker;
 use tauri::async_runtime::{JoinHandle, spawn};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tokio::io::{ReadBuf};
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::time::timeout;
@@ -181,7 +181,7 @@ pub async fn connect(ip: String, tcp_port: u16, udp_port: u16, tauri_state: taur
     } else {
         let conn = PicoConnection::new(ip.clone(), tcp_port, udp_port).await?;
         state.connection = Some(conn);
-        state.app_handle.emit_all("connection-open", ConnectionOpenPayload{ ip }).unwrap();
+        state.app_handle.emit("connection-open", ConnectionOpenPayload{ ip }).unwrap();
         Ok(())
     }
 }
@@ -191,6 +191,6 @@ pub async fn disconnect(tauri_state: tauri::State<'_, LockedAppState>) -> Result
     let mut state: RwLockWriteGuard<AppState> = tauri_state.0.write().await;
     state.neopixel_controller.take();
     state.connection.take().ok_or("Not connected to a pico!")?;
-    state.app_handle.emit_all("connection-close", {}).unwrap();
+    state.app_handle.emit("connection-close", {}).unwrap();
     Ok(())
 }

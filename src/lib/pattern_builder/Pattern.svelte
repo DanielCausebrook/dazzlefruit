@@ -4,7 +4,7 @@
     import {PatternInfo} from "./pattern-builder-view";
     import {listen, type UnlistenFn, type Event as TaruiEvent} from "@tauri-apps/api/event";
     import {onDestroy, onMount} from "svelte";
-    import {invoke} from "@tauri-apps/api/tauri";
+    import {invoke} from "@tauri-apps/api/core";
     import {PatternView} from "./pattern-view";
     import { createEventDispatcher } from 'svelte';
 

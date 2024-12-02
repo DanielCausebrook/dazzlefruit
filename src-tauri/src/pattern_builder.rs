@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::Arc;
 use futures::StreamExt;
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri::async_runtime::{JoinHandle, spawn};
 use tokio::sync::{broadcast, RwLockReadGuard, RwLockWriteGuard, watch};
 use tokio_stream::wrappers::WatchStream;
@@ -81,7 +81,7 @@ impl PatternBuilder {
             pixel_updater_handle: spawn(async move {
                 while let Some(pixel_data) = update_receiver.next().await {
                     let _ = update_sender.send((id, pixel_data.clone()));
-                    app_handle.emit_all(
+                    app_handle.emit(
                         "pixel-update",
                         PixelUpdatePayload { id, pixel_data: pixel_data.into_srgba_components() },
                     ).unwrap();

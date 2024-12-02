@@ -121,7 +121,7 @@ impl Frame<ColorPixel> {
     }
     pub fn into_srgba_components(self) -> Vec<(u8, u8, u8, u8)> {
         self.into_iter()
-            .map(|c| Srgba::<u8>::from_linear(c.into()).into_components())
+            .map(|c| Srgba::<u8>::from_linear(c).into_components())
             .collect()
     }
 }

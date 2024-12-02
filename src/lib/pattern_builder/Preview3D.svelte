@@ -6,18 +6,19 @@
     import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
     import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
     import {onMount, tick} from "svelte";
-    import type {PositionMap} from "../PatternBuilder.svelte";
+
+    type PositionMap = ([number, number, number]|null)[];
 
     export const initialPositionMap: PositionMap = [];
 
-    let positionMapListeners: [function(PositionMap):void] = [];
+    let positionMapListeners: ((positionMap: PositionMap) => void)[] = [];
     export function updatePositionMap(positionMap: PositionMap) {
         for (const positionMapListener of positionMapListeners) {
             positionMapListener(positionMap);
         }
     }
 
-    export let pixelColorData: [[number, number, number, number]] = [];
+    export let pixelColorData: [number, number, number, number][] = [];
 
     onMount(async () => {
         await tick();
@@ -55,12 +56,12 @@
             camera.lookAt(center);
         }
 
-        let lights: [THREE.Mesh|null] = [];
+        let lights: (THREE.Mesh|null)[] = [];
 
         function updateLights(positionMap: PositionMap) {
             scene.clear();
 
-            let vPositionMap: [THREE.Vector3|null] =
+            let vPositionMap: (THREE.Vector3|null)[] =
                 positionMap.map(pos => pos === null ? null : new THREE.Vector3(pos[0], pos[1], pos[2]));
 
             lights = vPositionMap.map(pos => {

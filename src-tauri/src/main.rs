@@ -5,10 +5,11 @@
 #![feature(associated_type_defaults)]
 #![feature(inline_const)]
 #![feature(map_try_insert)]
+#![feature(trait_upcasting)]
 
 extern crate core;
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
 
 use crate::neopixel_controller::NeopixelController;
@@ -33,12 +34,14 @@ pub struct LockedAppState(pub RwLock<AppState>);
 
 impl AppState {
     fn debug_println(&self, message: &str) {
-        self.app_handle.emit_all("debug-println", DebugMessagePayload{ message: message.parse().unwrap() }).unwrap();
+        self.app_handle.emit("debug-println", DebugMessagePayload{ message: message.parse().unwrap() }).unwrap();
     }
 }
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .setup(move |app| {
             let mut state = AppState {
                 connection: None,
